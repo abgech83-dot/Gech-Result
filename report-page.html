@@ -121,7 +121,7 @@
     <script src="app.js"></script>
     <script>
         const auth = JSON.parse(sessionStorage.getItem('currentUser'));
-        if(!auth || (auth.role !== 'admin' && auth.role !== 'teacher')) window.location.href = 'index.html';
+        if(!auth || (auth.role !== 'admin' && auth.role !== 'teacher')) window.location.href = 'login.html';
 
         function formatSubject(sub) {
             return sub.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');

@@ -131,7 +131,7 @@
     <script src="app.js"></script>
     <script>
         const auth = JSON.parse(sessionStorage.getItem('currentUser'));
-if(!auth || auth.role !== 'teacher') window.location.href = 'index.html';
+if(!auth || auth.role !== 'teacher') window.location.href = 'login.html';
         
 const teacherSubject = auth.subject || "English"; 
 document.getElementById('teacherName').innerText = auth.name;
