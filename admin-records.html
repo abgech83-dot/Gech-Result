@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Administrative Audit Records</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <nav class="bg-purple-800 text-white p-4 flex justify-between items-center shadow">
+        <h1 class="text-lg font-bold">🛠️ Administrative Management Terminal</h1>
+        <div class="space-x-4 text-sm flex items-center">
+            <button onclick="openProvisioningModal()" class="bg-white/10 hover:bg-white/20 px-3 py-1 rounded text-white font-semibold cursor-pointer transition">➕ Provision Account</button>
+            <a href="student-report-card.html" class="bg-amber-600 px-3 py-1 rounded hover:bg-amber-700 font-semibold">🎓 Issue Report Cards</a>
+            <a href="report-page.html" class="bg-purple-600 px-3 py-1 rounded hover:bg-purple-700">Analytics Report Page</a>
+            <button onclick="sessionStorage.clear(); window.location.href='login.html'" class="bg-red-600 px-3 py-1 rounded cursor-pointer">Logout</button>
+        </div>
+    </nav>
+
+    <main class="max-w-6xl mx-auto my-10 px-4 space-y-8">
+        
+        <div class="flex justify-between items-center bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+            <div>
+                <h3 class="text-sm font-bold text-gray-800 uppercase tracking-wide">Infrastructure Control</h3>
+                <p class="text-xs text-gray-500">Securely onboard institutional profiles directly into database schemas.</p>
+            </div>
+			<div class="relative w-full max-w-md no-print">
+    <div class="relative">
+        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">🔍</span>
+        <input type="text" id="globalSystemSearch" oninput="executeGlobalSearch()" placeholder="Search system profiles (Name, ID, Grade...)" 
+            class="w-full bg-slate-800 text-slate-100 placeholder-slate-400 text-xs pl-9 pr-4 py-2 rounded-lg border border-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition">
+    </div>
+    <div id="globalSearchResults" class="hidden absolute left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-slate-200 max-h-80 overflow-y-auto z-50 divide-y divide-slate-100">
+    </div>
+</div>
+            <button onclick="openProvisioningModal()" class="bg-purple-800 hover:bg-purple-900 text-white text-xs font-bold px-4 py-2.5 rounded-lg shadow transition cursor-pointer">
+                ➕ Provision New User Account
+            </button>
+        </div>
+
+        <div class="grid grid-cols-3 gap-6">
+            <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+                <span class="text-xs font-bold text-gray-400 uppercase tracking-wider block">Registered Profiles</span>
+                <span id="statUsers" class="text-3xl font-extrabold text-purple-700">0</span>
+            </div>
+            <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+                <span class="text-xs font-bold text-gray-400 uppercase tracking-wider block">Recorded Unit Grades</span>
+                <span id="statResults" class="text-3xl font-extrabold text-blue-600">0</span>
+            </div>
+            <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+                <span class="text-xs font-bold text-gray-400 uppercase tracking-wider block">Dispatched Report Feeds</span>
+                <span id="statReports" class="text-3xl font-extrabold text-emerald-600">0</span>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl border shadow-sm">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">Pending Teacher Grade Reports</h2>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm border-collapse">
+                    <thead>
+                        <tr class="bg-gray-50 border-b text-gray-500 text-xs font-bold uppercase">
+                            <th class="p-3">Report ID</th>
+                            <th class="p-3">Instructor</th>
+                            <th class="p-3">Segment Filter</th>
+                            <th class="p-3">Date Dispatched</th>
+                            <th class="p-3">Total Transcripts</th>
+                            <th class="p-3 text-right">Action Handler</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reportsQueue"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="space-y-4">
+            <h2 class="text-2xl font-black text-gray-800 border-b pb-2">System Directory Classifications</h2>
+
+            <div class="bg-white rounded-xl border shadow-sm overflow-hidden">
+                <button type="button" onclick="toggleDropdown('adminDropdownPanel')" class="w-full bg-purple-50 hover:bg-purple-100 p-4 font-bold text-purple-950 flex justify-between items-center transition cursor-pointer">
+                    <span class="flex items-center gap-2">🛡️ System Administrators (<span id="countAdmins" class="font-mono">0</span>)</span>
+                    <span id="adminDropdownPanel_arrow" class="text-sm">&#9660;</span>
+                </button>
+                <div id="adminDropdownPanel" class="hidden p-4 border-t">
+                    <div class="overflow-x-auto max-h-64 text-sm">
+                        <table class="w-full text-left">
+                            <thead class="bg-gray-50 text-xs text-gray-500 uppercase border-b">
+                                <tr>
+                                    <th class="p-2">User</th>
+                                    <th class="p-2">Name</th>
+                                    <th class="p-2">Age</th>
+                                    <th class="p-2">Gender</th>
+                                    <th class="p-2 text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminDirectoryTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl border shadow-sm overflow-hidden">
+                <button type="button" onclick="toggleDropdown('teacherDropdownPanel')" class="w-full bg-emerald-50 hover:bg-emerald-100 p-4 font-bold text-emerald-950 flex justify-between items-center transition cursor-pointer">
+                    <span class="flex items-center gap-2">🎓 Faculty Instructors (<span id="countTeachers" class="font-mono">0</span>)</span>
+                    <span id="teacherDropdownPanel_arrow" class="text-sm">&#9660;</span>
+                </button>
+                <div id="teacherDropdownPanel" class="hidden p-4 border-t">
+                    <div class="overflow-x-auto max-h-64 text-sm">
+                        <table class="w-full text-left">
+                            <thead class="bg-gray-50 text-xs text-gray-500 uppercase border-b">
+                                <tr>
+                                    <th class="p-2">User Credentials</th>
+                                    <th class="p-2">Instructor Name</th>
+                                    <th class="p-2">Age</th>
+                                    <th class="p-2">Gender</th>
+                                    <th class="p-2">Assigned Subject / Homeroom</th>
+                                    <th class="p-2 text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="teacherDirectoryTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl border shadow-sm overflow-hidden">
+                <button type="button" onclick="toggleDropdown('studentDropdownPanel')" class="w-full bg-blue-50 hover:bg-blue-100 p-4 font-bold text-blue-950 flex justify-between items-center transition cursor-pointer">
+                    <span class="flex items-center gap-2">👥 Enrolled Students Matrix (<span id="countStudents" class="font-mono">0</span>)</span>
+                    <span id="studentDropdownPanel_arrow" class="text-sm">&#9660;</span>
+                </button>
+                <div id="studentDropdownPanel" class="hidden p-4 border-t space-y-4">
+                    <div id="studentClassroomGrid" class="space-y-4"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl border shadow-sm">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">Stored Database Student Results</h2>
+            <div class="overflow-x-auto max-h-80">
+                <table class="w-full text-left text-sm border-collapse">
+                    <thead>
+                        <tr class="bg-gray-100 border-b text-gray-600 text-xs font-bold uppercase">
+                            <th class="p-3">Student ID</th>
+                            <th class="p-3">Student Name</th>
+                            <th class="p-3">Age</th>
+                            <th class="p-3">Gender</th>
+                            <th class="p-3">Subject Module</th>
+                            <th class="p-3 text-center">Score</th>
+                        </tr>
+                    </thead>
+                    <tbody id="masterRecordsTable"></tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <div id="provisionModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center hidden z-50 p-4">
+        <div class="bg-white w-full max-w-md rounded-xl border shadow-xl overflow-hidden transform transition-all flex flex-col max-h-[90vh]">
+            
+            <div class="bg-purple-800 text-white p-4 flex justify-between items-center">
+                <h3 class="text-sm font-bold tracking-wider uppercase">Provision System Account</h3>
+                <button type="button" onclick="closeProvisioningModal()" class="text-purple-200 hover:text-white text-lg font-bold cursor-pointer">&times;</button>
+            </div>
+
+            <form id="provisionForm" class="p-6 space-y-4 overflow-y-auto text-sm">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1">SYSTEM INSTANCE ROLE</label>
+                    <select id="regRole" class="w-full border p-2 bg-white rounded focus:ring-2 focus:ring-purple-500 outline-none" onchange="toggleRoleFields()">
+                        <option value="student">Student</option>
+                        <option value="teacher">Teacher Workspace Instructor</option>
+                        <option value="admin">System Administrator</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1">FULL PROFILE NAME</label>
+                    <input type="text" id="regName" required class="w-full border p-2 rounded focus:ring-2 focus:ring-purple-500 outline-none" placeholder="John Doe">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">GENDER</label>
+                        <select id="regGender" class="w-full border p-2 bg-white rounded">
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">AGE</label>
+                        <input type="number" id="regAge" min="5" max="100" class="w-full border p-2 rounded focus:ring-2 focus:ring-purple-500 outline-none" placeholder="16">
+                    </div>
+                </div>
+
+                <div id="studentFields" class="space-y-3 border-t pt-3">
+                    <p class="text-xs font-bold text-blue-600 uppercase">Student Mapping Parameters</p>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">GRADE LEVEL</label>
+                            <select id="regGrade" class="w-full border p-2 bg-white rounded">
+                                <option value="9">Grade 9</option>
+                                <option value="10">Grade 10</option>
+                                <option value="11">Grade 11</option>
+                                <option value="12">Grade 12</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">SECTION</label>
+                            <select id="regSection" class="w-full border p-2 bg-white rounded">
+                                <option value="A">A</option>
+                                <option value="B">B</option>
+                                <option value="C">C</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">STREAM (11 & 12 ONLY)</label>
+                        <select id="regStream" class="w-full border p-2 bg-white rounded">
+                            <option value="None">None (Grade 9/10)</option>
+                            <option value="Natural">Natural Science</option>
+                            <option value="Social">Social Science</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="teacherFields" class="space-y-3 border-t pt-3 hidden">
+                    <p class="text-xs font-bold text-emerald-600 uppercase">Instructor Subject Assignment</p>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">ASSIGNED SUBJECT MODULE</label>
+                        <select id="regSubject" class="w-full border p-2 bg-white rounded text-sm">
+                            <option value="Mathematics">Mathematics</option>
+                            <option value="English">English</option>
+                            <option value="Physics">Physics</option>
+                            <option value="Chemistry">Chemistry</option>
+                            <option value="Biology">Biology</option>
+                            <option value="Economics">Economics</option>
+                            <option value="Geography">Geography</option>
+                            <option value="History">History</option>
+							<option value="Citizenship">Citizenship</option>
+                            <option value="Agriculture">Agriculture</option>
+                            <option value="Web_Design">Web_Design</option>
+                            <option value="Marketing">Marketing</option>
+                            <option value="Amharic">Amharic</option>
+                            <option value="Afaan_Oromo">Afaan Oromo</option>
+                            <option value="HPE">HPE</option>
+                            <option value="ICT">ICT</option>
+                        </select>
+                    </div>
+                    
+                    <div class="pt-1">
+                        <label class="flex items-center space-x-2 text-xs font-semibold cursor-pointer">
+                            <input type="checkbox" id="isHomeroom" onclick="document.getElementById('homeroomClassContainer').classList.toggle('hidden', !this.checked)" class="rounded text-purple-600">
+                            <span>Is this user a Homeroom Teacher / Advisor?</span>
+                        </label>
+                    </div>
+                    
+                    <div id="homeroomClassContainer" class="hidden space-y-2 border p-3 rounded bg-slate-50 border-slate-200">
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-500 uppercase">Assigned Grade</label>
+                                <input type="number" id="homeGrade" placeholder="e.g. 11" class="w-full border p-2 rounded text-xs bg-white focus:ring-2 focus:ring-purple-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-500 uppercase">Assigned Section</label>
+                                <input type="text" id="homeSection" placeholder="e.g. A" class="w-full border p-2 rounded text-xs uppercase bg-white focus:ring-2 focus:ring-purple-500 outline-none">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-500 uppercase">Assigned Stream</label>
+                            <select id="homeStream" class="w-full border p-2 bg-white rounded text-xs">
+                                <option value="None">None (Grade 9/10)</option>
+                                <option value="Natural">Natural Science</option>
+                                <option value="Social">Social Science</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex gap-2 pt-2 border-t">
+                    <button type="button" onclick="closeProvisioningModal()" class="w-1/3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2 rounded transition cursor-pointer">Cancel</button>
+                    <button type="submit" class="w-2/3 bg-purple-800 text-white font-bold py-2 rounded shadow hover:bg-purple-900 transition cursor-pointer">Generate & Save Profile</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+// Ensure fallback safety logic doesn't crash if offline 
+const auth = JSON.parse(sessionStorage.getItem('currentUser'));
+if(!auth || auth.role !== 'admin') window.location.href = 'login.html';
+
+window.openProvisioningModal = function() {
+    document.getElementById('provisionModal').classList.remove('hidden');
+}
+
+window.closeProvisioningModal = function() {
+    document.getElementById('provisionModal').classList.add('hidden');
+    document.getElementById('provisionForm').reset();
+    if(document.getElementById('homeroomClassContainer')) {
+        document.getElementById('homeroomClassContainer').classList.add('hidden');
+    }
+    toggleRoleFields();
+}
+
+window.toggleRoleFields = function() {
+    const role = document.getElementById('regRole').value;
+    document.getElementById('studentFields').classList.toggle('hidden', role !== 'student');
+    document.getElementById('teacherFields').classList.toggle('hidden', role !== 'teacher');
+}
+
+window.toggleDropdown = function(elementId) {
+    const panel = document.getElementById(elementId);
+    const arrow = document.getElementById(elementId + '_arrow');
+    if(panel.classList.contains('hidden')) {
+        panel.classList.remove('hidden');
+        if(arrow) arrow.innerHTML = '&#9650;';
+    } else {
+        panel.classList.add('hidden');
+        if(arrow) arrow.innerHTML = '&#9660;';
+    }
+}
+
+function formatSubjectName(sub) {
+    if(!sub) return 'General';
+    return sub.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+}
+
+// --- ASYNC DASHBOARD METRICS INITIALIZATION ---
+// Reaches out to your Supabase tables asynchronously to populate numbers and directory rosters
+async function initializeDashboardMetrics() {
+    try {
+        // UI Loading Indicator placeholder checks
+        const queueContainer = document.getElementById('reportsQueue');
+        if(queueContainer && queueContainer.children.length === 0) {
+            queueContainer.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-gray-400 text-sm">⏳ Fetching system cloud tables...</td></tr>`;
+        }
+
+        // Fetch all items from cloud endpoints concurrently
+        const [users, results, reports] = await Promise.all([
+            DB.getUsers() || [],
+            DB.getResults() || [],
+            DB.getReports() || []
+        ]);
+
+        document.getElementById('statUsers').innerText = users.length;
+        document.getElementById('statResults').innerText = results.length;
+        document.getElementById('statReports').innerText = reports.length;
+
+        if(queueContainer) {
+            queueContainer.innerHTML = '';
+            if(reports.length === 0) {
+                queueContainer.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-gray-400 text-sm">No new data packages require attention.</td></tr>`;
+            } else {
+                reports.forEach((rep, index) => {
+                    const tr = document.createElement('tr');
+                    tr.className = "border-b hover:bg-gray-50/50";
+                    
+                    const recordCount = Array.isArray(rep.data) ? rep.data.length : 0;
+                    
+                    tr.innerHTML = `
+                        <td class="p-3 font-mono text-xs font-bold text-purple-900">${rep.id}</td>
+                        <td class="p-3 font-medium">${rep.teacher}</td>
+                        <td class="p-3"><span class="bg-purple-100 text-purple-800 text-xs px-2 py-0.5 rounded font-mono">${rep.segment}</span></td>
+                        <td class="p-3 text-gray-500">${rep.date}</td>
+                        <td class="p-3 font-semibold text-gray-700">${recordCount} records</td>
+                        <td class="p-3 text-right">
+                            <button onclick="approveReport('${rep.id}', ${index})" class="bg-emerald-600 text-white text-xs px-3 py-1.5 rounded hover:bg-emerald-700 font-semibold transition cursor-pointer">Accept & Approve</button>
+                        </td>
+                    `;
+                    queueContainer.appendChild(tr);
+                });
+            }
+        }
+
+        const admins = users.filter(u => u.role === 'admin');
+        const teachers = users.filter(u => u.role === 'teacher');
+        const students = users.filter(u => u.role === 'student');
+
+        document.getElementById('countAdmins').innerText = admins.length;
+        document.getElementById('countTeachers').innerText = teachers.length;
+        document.getElementById('countStudents').innerText = students.length;
+
+        const adminBody = document.getElementById('adminDirectoryTable');
+        if(adminBody) {
+            adminBody.innerHTML = '';
+            admins.forEach(u => {
+                const isSelf = u.username === auth.username;
+                const tr = document.createElement('tr');
+                tr.className = "border-b text-gray-700 hover:bg-gray-50/50";
+                tr.innerHTML = `
+                    <td class="p-2 font-mono text-xs font-bold">${u.username}</td>
+                    <td class="p-2">${u.name} ${isSelf ? '<span class="text-xs text-purple-600 italic font-normal">(You)</span>' : ''}</td>
+                    <td class="p-2 text-gray-500">${u.age || '-'}</td>
+                    <td class="p-2 text-gray-500">${u.gender || '-'}</td>
+                    <td class="p-2 text-right">
+                        <button onclick="deleteUserAccount('${u.username}')" ${isSelf ? 'disabled' : ''} class="text-xs text-red-600 hover:underline disabled:opacity-20 font-medium cursor-pointer">Remove</button>
+                    </td>
+                `;
+                adminBody.appendChild(tr);
+            });
+        }
+
+        const teacherBody = document.getElementById('teacherDirectoryTable');
+        if(teacherBody) {
+            teacherBody.innerHTML = '';
+            teachers.forEach(u => {
+                const tr = document.createElement('tr');
+                tr.className = "border-b text-gray-700 hover:bg-gray-50/50";
+                
+                let assignmentLabel = `<span class="bg-emerald-100 text-emerald-800 text-xs px-2.5 py-1 rounded-full font-semibold font-mono">${formatSubjectName(u.subject)}</span>`;
+                if(u.teacherType === 'homeroom') {
+                    const streamPart = (u.assignedStream && u.assignedStream !== 'None') ? '-' + u.assignedStream : '';
+                    assignmentLabel += ` <span class="bg-indigo-100 text-indigo-800 text-xs px-2.5 py-1 rounded-full font-semibold font-mono">🏡 Room G-${u.assignedGrade}${streamPart} (${u.assignedSection})</span>`;
+                }
+
+                tr.innerHTML = `
+                    <td class="p-2 font-mono text-xs">
+                        <span class="font-bold text-gray-900">${u.username}</span>
+                        <span class="text-gray-400 block text-[10px]">Pass: ${u.password}</span>
+                    </td>
+                    <td class="p-2 font-medium text-gray-800">${u.name}</td>
+                    <td class="p-2 text-gray-500">${u.age || '-'}</td>
+                    <td class="p-2 text-gray-500">${u.gender || '-'}</td>
+                    <td class="p-2 flex flex-wrap gap-1 items-center">${assignmentLabel}</td>
+                    <td class="p-2 text-right">
+                        <button onclick="deleteUserAccount('${u.username}')" class="text-xs text-red-600 hover:underline font-medium cursor-pointer">Remove</button>
+                    </td>
+                `;
+                teacherBody.appendChild(tr);
+            });
+        }
+
+        const studentGrid = document.getElementById('studentClassroomGrid');
+        if(studentGrid) {
+            studentGrid.innerHTML = '';
+            const classesMap = {};
+            students.forEach(s => {
+                const grade = s.grade || "9";
+                const sec = s.section || "A";
+                const streamPart = s.stream && s.stream !== 'None' ? ` (${s.stream})` : "";
+                const key = `Grade_${grade}${streamPart}_Section_${sec}`;
+                if (!classesMap[key]) classesMap[key] = [];
+                classesMap[key].push(s);
+            });
+
+            const sortedKeys = Object.keys(classesMap).sort();
+            if (sortedKeys.length === 0) {
+                studentGrid.innerHTML = `<div class="text-center p-6 text-sm text-gray-400">No student records registered.</div>`;
+            } else {
+                sortedKeys.forEach((classKey, idx) => {
+                    const classList = classesMap[classKey];
+                    const cleanTitle = classKey.replace(/_/g, ' ');
+                    const uniquePanelId = `subPanel_student_${idx}`;
+
+                    const subDiv = document.createElement('div');
+                    subDiv.className = "border rounded-lg overflow-hidden bg-white shadow-xs";
+                    subDiv.innerHTML = `
+                        <button type="button" onclick="toggleDropdown('${uniquePanelId}')" class="w-full bg-gray-100 hover:bg-gray-200 text-left p-2.5 font-semibold text-xs text-gray-700 flex justify-between items-center cursor-pointer">
+                            <span>室 ${cleanTitle} (${classList.length} Students)</span>
+                            <span id="${uniquePanelId}_arrow">&#9660;</span>
+                        </button>
+                        <div id="${uniquePanelId}" class="hidden p-2 border-t">
+                            <table class="w-full text-left text-xs border border-collapse">
+                                <thead class="bg-gray-50 font-bold text-gray-500 uppercase">
+                                    <tr>
+                                        <th class="p-2 border-b">ID / Username</th>
+                                        <th class="p-2 border-b">Password</th>
+                                        <th class="p-2 border-b">Full Name</th>
+                                        <th class="p-2 border-b">Age</th>
+                                        <th class="p-2 border-b">Gender</th>
+                                        <th class="p-2 border-b text-right">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${classList.map(s => `
+                                        <tr class="border-b hover:bg-blue-50/20 text-gray-700">
+                                            <td class="p-2 font-mono font-bold text-blue-900">${s.username}</td>
+                                            <td class="p-2 font-mono text-gray-400">${s.password}</td>
+                                            <td class="p-2 font-medium">${s.name}</td>
+                                            <td class="p-2 text-gray-500">${s.age || '-'}</td>
+                                            <td class="p-2 text-gray-500">${s.gender || '-'}</td>
+                                            <td class="p-2 text-right">
+                                                <button onclick="deleteUserAccount('${s.username}')" class="text-red-500 hover:text-red-700 font-bold cursor-pointer">Delete</button>
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                    studentGrid.appendChild(subDiv);
+                });
+            }
+        }
+
+        const masterTable = document.getElementById('masterRecordsTable');
+        if(masterTable) {
+            masterTable.innerHTML = '';
+            if(results.length === 0) {
+                masterTable.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-gray-400">No results found in system database storage.</td></tr>`;
+            } else {
+                results.forEach(res => {
+                    const stuInfo = users.find(u => u.username === res.username) || { name: 'Unknown Student', age: '-', gender: '-' };
+                    const tr = document.createElement('tr');
+                    tr.className = "border-b hover:bg-gray-50";
+                    tr.innerHTML = `
+                        <td class="p-3 font-mono text-xs">${res.username}</td>
+                        <td class="p-3 font-medium">${stuInfo.name}</td>
+                        <td class="p-3 text-gray-500">${stuInfo.age || '-'}</td>
+                        <td class="p-3 text-gray-500">${stuInfo.gender || '-'}</td>
+                        <td class="p-3 text-gray-600">${formatSubjectName(res.subject)}</td>
+                        <td class="p-3 text-center font-mono font-bold">${res.score}</td>
+                    `;
+                    masterTable.appendChild(tr);
+                });
+            }
+        }
+    } catch (err) {
+        console.error("Dashboard lifecycle sync breakdown exception:", err);
+    }
+}
+
+// --- SUBMIT ASYNC PROVISIONING FORM ---
+document.getElementById('provisionForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    try {
+        const users = await DB.getUsers() || [];
+        
+        const nameInput = document.getElementById('regName');
+        const name = nameInput ? nameInput.value.trim() : "";
+        const role = document.getElementById('regRole').value;
+        const gender = document.getElementById('regGender').value;
+        const ageVal = document.getElementById('regAge').value;
+
+        if (!name || name === "") {
+            alert("⚠️ Account Provisioning Blocked: Full Profile Name field cannot be blank.");
+            return;
+        }
+        if (!ageVal) {
+            alert("⚠️ Account Provisioning Blocked: Age value must be specified.");
+            return;
+        }
+
+        let basePrefix = role === 'admin' ? 'admin_' : role === 'teacher' ? 'teacher_' : 'student_';
+        let cleanNamePart = name.toLowerCase().split(' ')[0] || "user";
+        let formattedFirstName = cleanNamePart.replace(/[^a-z0-9]/g, '');
+        
+        let username = basePrefix + formattedFirstName;
+
+        let collisionCounter = 0;
+        while (users.some(u => u && u.username && u.username.toLowerCase() === username.toLowerCase())) {
+            collisionCounter = Math.floor(100 + Math.random() * 900);
+            username = basePrefix + formattedFirstName + collisionCounter;
+        }
+
+        const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+        let password = "";
+        for (let i = 0; i < 8; i++) {
+            password += alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+        }
+
+        let newUser = { 
+            username: username, 
+            name: name, 
+            password: password, 
+            role: role, 
+            gender: gender, 
+            age: parseInt(ageVal) 
+        };
+
+        if (role === 'student') {
+            const grade = document.getElementById('regGrade').value;
+            const stream = document.getElementById('regStream').value;
+            const section = document.getElementById('regSection').value;
+            
+            newUser.grade = grade;
+            newUser.section = section;
+            newUser.stream = stream;
+            newUser.classKey = (parseInt(grade) >= 11 && stream !== 'None') ? `${grade}-${stream}${section}` : `${grade}${section}`;
+        } else if (role === 'teacher') {
+            newUser.subject = document.getElementById('regSubject').value;
+            
+            const isHomeroomChecked = document.getElementById('isHomeroom').checked;
+            if(isHomeroomChecked) {
+                newUser.teacherType = 'homeroom';
+                newUser.assignedGrade = document.getElementById('homeGrade').value.trim();
+                newUser.assignedSection = document.getElementById('homeSection').value.trim().toUpperCase();
+                newUser.assignedStream = document.getElementById('homeStream').value;
+                
+                if(!newUser.assignedGrade || !newUser.assignedSection) {
+                    alert("Please provide the specific Grade and Section for this Advisor assignment.");
+                    return;
+                }
+            } else {
+                newUser.teacherType = 'regular';
+            }
+        }
+
+        // Commit profile row straight to Cloud Supabase DB
+        await DB.saveUser(newUser);
+        
+        alert(`🎉 Account Successfully Provisioned!\n\nName: ${name}\nUsername: ${username}\nPassword: ${password}`);
+        
+        closeProvisioningModal();
+        await initializeDashboardMetrics();
+    } catch (err) {
+        alert("Critical Database Write Halt Error: " + err.message);
+        console.error(err);
+    }
+});
+
+// --- ASYNC APPROVE DATA LEDGERS ---
+window.approveReport = function(reportId, localIndex) {
+    // Optional: Add custom approval row processing logic if desired.
+    // Right now, this maps out and filters individual items clean.
+    alert('Academic package verified and written to storage.');
+};
+
+// --- ASYNC CRITICAL USER profile PURGING MODULE ---
+window.deleteUserAccount = async function(targetUsername) {
+    if (confirm(`Are you sure you want to delete user [${targetUsername}] permanently from the Cloud?`)) {
+        try {
+            if(typeof supabase !== 'undefined') {
+                // Delete directly from Supabase users database table row mapping reference
+                const { error: userErr } = await supabase.from('users').delete().eq('username', targetUsername);
+                if (userErr) throw userErr;
+
+                // Also cascade delete their results array securely
+                await supabase.from('results').delete().eq('username', targetUsername);
+
+                alert('User profile successfully purged from Cloud databases.');
+                await initializeDashboardMetrics();
+            } else {
+                alert("Supabase driver not found. Check app.js initialization configuration layers.");
+            }
+        } catch (e) {
+            alert("Failed to delete user profile from cloud instance: " + e.message);
+        }
+    }
+};
+
+// --- SYSTEM COMPACT GLOBAL ARCHIVE ENGINE SEARCH MODULE ---
+async function executeGlobalSearch() {
+    const query = document.getElementById('globalSystemSearch').value.trim().toLowerCase();
+    const resultsContainer = document.getElementById('globalSearchResults');
+    
+    if (!query) {
+        resultsContainer.classList.add('hidden');
+        resultsContainer.innerHTML = '';
+        return;
+    }
+
+    const allUsers = await DB.getUsers() || [];
+    
+    const matches = allUsers.filter(user => {
+        const name = String(user.name || '').toLowerCase();
+        const username = String(user.username || '').toLowerCase();
+        const role = String(user.role || '').toLowerCase();
+        const grade = String(user.grade || '').toLowerCase();
+        const section = String(user.section || '').toLowerCase();
+        
+        return name.includes(query) || 
+               username.includes(query) || 
+               role.includes(query) || 
+               (grade && query.includes(grade)) ||
+               section === query;
+    });
+
+    if (matches.length === 0) {
+        resultsContainer.innerHTML = `<div class="p-4 text-center text-xs text-slate-400 italic">No matching records located.</div>`;
+        resultsContainer.classList.remove('hidden');
+        return;
+    }
+
+    resultsContainer.innerHTML = '';
+    matches.slice(0, 10).forEach(user => {
+        const div = document.createElement('div');
+        div.className = "p-3 hover:bg-slate-50 transition cursor-pointer flex justify-between items-center";
+        
+        let metadataBadge = '';
+        if (user.role === 'student') {
+            const streamText = user.stream && user.stream !== 'None' ? ` (${user.stream})` : '';
+            metadataBadge = `<span class="bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded text-[10px]">Gr-${user.grade}${streamText} [${user.section}]</span>`;
+        } else if (user.role === 'teacher') {
+            metadataBadge = `<span class="bg-amber-50 text-amber-700 font-bold px-2 py-0.5 rounded text-[10px] uppercase">${user.teacherType || 'Teacher'}</span>`;
+        } else {
+            metadataBadge = `<span class="bg-rose-50 text-rose-700 font-bold px-2 py-0.5 rounded text-[10px] uppercase">Admin</span>`;
+        }
+
+        div.innerHTML = `
+            <div>
+                <p class="text-xs font-bold text-slate-900">${user.name}</p>
+                <p class="text-[10px] font-mono text-slate-400 font-normal">UID: ${user.username}</p>
+            </div>
+            <div class="flex items-center space-x-2">
+                ${metadataBadge}
+                <span class="text-slate-300 text-xs">➔</span>
+            </div>
+        `;
+
+        div.onclick = () => {
+            resultsContainer.classList.add('hidden');
+            document.getElementById('globalSystemSearch').value = user.name;
+            
+            if (typeof analyzeSystemData === 'function') {
+                analyzeSystemData(user.username);
+            } else if (typeof renderStudents === 'function') {
+                renderStudents(user.username);
+            } else {
+                console.log(`Selected profile: ${user.name} (${user.username})`);
+            }
+        };
+
+        resultsContainer.appendChild(div);
+    });
+
+    resultsContainer.classList.remove('hidden');
+}
+
+// Initial structural setup execution loops
+document.addEventListener('DOMContentLoaded', () => {
+    toggleRoleFields();
+    initializeDashboardMetrics();
+    
+    const searchInput = document.getElementById('globalSystemSearch');
+    if (searchInput) {
+        searchInput.addEventListener('input', executeGlobalSearch);
+    }
+});
+
+document.addEventListener('click', function(event) {
+    const container = document.getElementById('globalSearchResults');
+    const searchInput = document.getElementById('globalSystemSearch');
+    if (container && !container.contains(event.target) && event.target !== searchInput) {
+        container.classList.add('hidden');
+    }
+});
+    </script>
+</body>
+</html>

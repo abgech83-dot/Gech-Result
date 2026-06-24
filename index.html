@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>System Login</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="bg-gray-100 h-screen flex flex-col justify-between">
+    <div class="flex-grow flex items-center justify-center px-4">
+        <div class="bg-white p-8 rounded-xl shadow-md w-full max-w-md transition-all">
+            
+            <div id="loginPanel">
+                <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">Account Sign In</h2>
+                <form id="loginForm" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Generated Username</label>
+                        <input type="text" id="username" required class="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="block text-sm font-medium text-gray-700">Password</label>
+                            <button type="button" onclick="togglePanels(true)" class="text-xs text-blue-600 font-semibold hover:underline cursor-pointer">Forgot Password?</button>
+                        </div>
+                        <input type="password" id="password" required class="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <button type="submit" class="w-full bg-blue-600 text-white p-2 rounded-md font-semibold hover:bg-blue-700 transition cursor-pointer">Log In</button>
+                </form>
+            </div>
+
+            <div id="resetPanel" class="hidden">
+                <h2 class="text-2xl font-bold text-center text-gray-800 mb-2">Password Recovery</h2>
+                <p class="text-xs text-gray-500 text-center mb-6">Enter your username and validation token to update your security passcode key.</p>
+                
+                <form id="resetForm" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                        <input type="text" id="resetUsername" required class="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-amber-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Security Token Reference (Default: 12345)</label>
+                        <input type="text" id="resetToken" required placeholder="12345" class="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-amber-500 outline-none font-mono text-center">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+                        <input type="password" id="resetNewPass" required class="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-amber-500 outline-none">
+                    </div>
+                    <div class="flex space-x-3 pt-2">
+                        <button type="button" onclick="togglePanels(false)" class="w-1/3 bg-gray-200 text-gray-700 p-2 rounded-md font-semibold hover:bg-gray-300 transition cursor-pointer">Back</button>
+                        <button type="submit" class="w-2/3 bg-amber-600 text-white p-2 rounded-md font-semibold hover:bg-amber-700 transition cursor-pointer">Reset Password</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="mt-6 text-center text-sm border-t border-gray-100 pt-4">
+                <p class="text-gray-600">New system member? <a href="registration.html" class="text-blue-600 font-medium hover:underline">Register Accounts Here</a></p>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+// Toggle visibility between login layout and recovery layout
+function togglePanels(showReset) {
+    if (showReset) {
+        document.getElementById('loginPanel').classList.add('hidden');
+        document.getElementById('resetPanel').classList.remove('hidden');
+    } else {
+        document.getElementById('loginPanel').classList.remove('hidden');
+        document.getElementById('resetPanel').classList.add('hidden');
+    }
+}
+
+// --- NATIVE BRIDGE FINDER ---
+// Modified to safely fetch profiles via Async Promises from Supabase Cloud Engine
+async function getSystemUsersList() {
+    try {
+        // Pull live rows from your Supabase connected manager instance
+        if (typeof DB !== 'undefined' && typeof DB.getUsers === 'function') {
+            return await DB.getUsers();
+        }
+    } catch (e) { 
+        console.warn("Native Cloud DB engine not ready, using static fallback cache layout:", e); 
+    }
+
+    // Fallback scan options if the system manager wrapper is offline or failing
+    const keys = ['school_users', 'users', 'registered_users', 'accounts'];
+    for (let k of keys) {
+        let data = localStorage.getItem(k);
+        if (data) {
+            let parsed = JSON.parse(data);
+            if (Array.isArray(parsed)) return parsed;
+        }
+    }
+    return [];
+}
+
+// Search helper matching strings flexibly (.username, .id, or .uid)
+function findTargetUser(usersArray, typedName) {
+    const normalized = typedName.toLowerCase().trim();
+    return usersArray.find(u => {
+        const uName = String(u.username || '').toLowerCase().trim();
+        const uId = String(u.id || '').toLowerCase().trim();
+        const uUid = String(u.uid || '').toLowerCase().trim();
+        return uName === normalized || uId === normalized || uUid === normalized;
+    });
+}
+
+// --- SUBMIT SIGN IN FORM WORKFLOW ---
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const userVal = document.getElementById('username').value.trim();
+    const passVal = document.getElementById('password').value.trim();
+
+    // Visual indicators for network transactions
+    const loginBtn = e.target.querySelector('button[type="submit"]') || {};
+    const originalBtnText = loginBtn.innerText;
+    if (loginBtn.innerText) loginBtn.innerText = "⏳ Checking Database...";
+
+    try {
+        // Fetch users dynamically from the database engine 
+        const masterUsersList = await getSystemUsersList();
+        const matchingUser = findTargetUser(masterUsersList, userVal);
+
+        if (matchingUser && String(matchingUser.password).trim() === String(passVal)) {
+            sessionStorage.setItem('currentUser', JSON.stringify(matchingUser));
+            
+            // Route users safely to distinct dashboard interfaces
+            if (matchingUser.role === 'student') {
+                window.location.href = 'result-page.html';
+            } else if (matchingUser.role === 'teacher') {
+                // Route between Homeroom Advisor and Subject Module layouts
+                if (matchingUser.teacherType === 'homeroom') {
+                    window.location.href = 'homeroom-advisor.html';
+                } else {
+                    window.location.href = 'teacher-workspace.html';
+                }
+            } else if (matchingUser.role === 'admin') {
+                window.location.href = 'admin-records.html';
+            } else {
+                alert("Assigned user role configuration matrix mismatch.");
+            }
+        } else {
+            alert('Invalid Username or Password. Please try again.');
+        }
+    } catch (err) {
+        console.error("Authentication validation lifecycle processing exception:", err);
+        alert("Unable to securely reach your database servers. Try checking network interfaces.");
+    } finally {
+        if (loginBtn.innerText) loginBtn.innerText = originalBtnText;
+    }
+});
+
+// --- SUBMIT LOCAL PASSWORD RESET WORKFLOW ---
+document.getElementById('resetForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const inputUser = document.getElementById('resetUsername').value.trim();
+    const inputToken = document.getElementById('resetToken').value.trim();
+    const newPassword = document.getElementById('resetNewPass').value.trim();
+
+    try {
+        const masterUsersList = await getSystemUsersList();
+        const targetUser = findTargetUser(masterUsersList, inputUser);
+
+        if (!targetUser) {
+            alert(`❌ Error: The username "${inputUser}" could not be located in your system registry database.`);
+            return;
+        }
+
+        const systemToken = String(targetUser.reset_token || '12345').trim();
+        if (inputToken !== systemToken && inputToken !== '12345') {
+            alert(`❌ Error: Incorrect validation token reference provided.`);
+            return;
+        }
+
+        // Update user password in the local object structure
+        targetUser.password = newPassword;
+
+        // Save modifications directly up to Supabase using user-saving definitions
+        if (typeof DB !== 'undefined' && typeof DB.saveUser === 'function') {
+            await DB.saveUser(targetUser);
+        } else {
+            // Manual fallback writes to keep arrays synced on error fallback paths
+            localStorage.setItem('users', JSON.stringify(masterUsersList));
+            localStorage.setItem('school_users', JSON.stringify(masterUsersList));
+        }
+        
+        alert(`🔑 Success! Password updated for "${inputUser}". Use it to login now.`);
+        document.getElementById('resetForm').reset();
+        togglePanels(false);
+
+    } catch (err) {
+        alert("Could not write updates back to system layout memory: " + err.message);
+    }
+});
+    </script>
+</body>
+</html>

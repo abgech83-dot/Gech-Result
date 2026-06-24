@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Student Transcript & Academic Report Card</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        /* CSS Print Interceptor Rules Engine */
+        @media print {
+            /* 1. Force background layouts and text contrast states on physically printed paper sheets */
+            body {
+                background-color: #ffffff !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            /* 2. Hide all management layout blocks, side search banners, and action components */
+            nav, 
+            main > div:first-of-type, 
+            .no-print,
+            button {
+                display: none !important;
+                visibility: hidden !important;
+            }
+
+            /* 3. Re-orient only the selected report card container layout area */
+            #reportCardPrintArea {
+                display: block !important;
+                visibility: visible !important;
+                border: none !important;
+                box-shadow: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen">
+
+    <nav class="bg-slate-900 text-white p-4 flex justify-between items-center shadow">
+        <div class="flex items-center space-x-3">
+            <span class="text-xl">📜</span>
+            <h1 class="text-base font-bold tracking-tight">Institutional Terminal: Student Transcripts</h1>
+        </div>
+        <div class="space-x-3 text-xs">
+            <a href="admin-records.html" class="bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded font-semibold transition">🛠️ Admin Control</a>
+            <button onclick="sessionStorage.clear(); window.location.href='login.html'" class="bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded font-semibold transition cursor-pointer">Logout</button>
+        </div>
+    </nav>
+
+    <main class="max-w-4xl mx-auto my-10 p-6 space-y-6">
+        
+        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-xs grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+            <div class="md:col-span-2">
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1 tracking-wider">Search Student Profile ID / Username</label>
+                <input type="text" id="searchUsername" placeholder="e.g., student_john" class="w-full border border-slate-300 p-2.5 rounded-lg font-mono text-sm uppercase outline-none focus:ring-2 focus:ring-indigo-600 bg-slate-50">
+            </div>
+            <button onclick="generateReportCard()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-lg shadow-sm text-sm transition cursor-pointer">
+                🔍 Compile Report Card
+            </button>
+        </div>
+
+        <div id="reportCardPrintArea" class="hidden bg-white p-8 rounded-2xl border border-slate-200 shadow-md space-y-6 relative overflow-hidden">
+            
+            <div class="border-b-4 border-indigo-900 pb-4 flex justify-between items-start">
+                <div>
+                    <h2 class="text-2xl font-black text-indigo-950 tracking-tight uppercase">Universal Academy Terminal</h2>
+                    <p class="text-xs text-slate-500 font-medium">Official Continuous Evaluation Record Transcript</p>
+                </div>
+                <div class="text-right">
+                    <span id="cardClassKey" class="bg-indigo-900 text-white font-mono font-bold text-xs px-3 py-1 rounded-md uppercase">Grade: --</span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-xl text-xs border border-slate-100">
+                <div>
+                    <span class="text-slate-400 block font-bold uppercase text-[9px]">Full Name</span>
+                    <span id="cardName" class="font-bold text-slate-800 text-sm">--</span>
+                </div>
+                <div>
+                    <span class="text-slate-400 block font-bold uppercase text-[9px]">Student ID Number</span>
+                    <span id="cardID" class="font-mono text-slate-700 text-sm font-semibold">--</span>
+                </div>
+                <div>
+                    <span class="text-slate-400 block font-bold uppercase text-[9px]">Gender Classification</span>
+                    <span id="cardGender" class="font-medium text-slate-700 text-sm">--</span>
+                </div>
+                <div>
+                    <span class="text-slate-400 block font-bold uppercase text-[9px]">Age Entry</span>
+                    <span id="cardAge" class="font-medium text-slate-700 text-sm">--</span>
+                </div>
+            </div>
+
+            <div class="overflow-hidden border border-slate-200 rounded-xl">
+                <table class="w-full text-left text-xs border-collapse">
+                    <thead>
+                        <tr class="bg-slate-900 text-slate-200 uppercase font-bold text-[10px] tracking-wider">
+                            <th class="p-3">Academic Subject Module</th>
+                            <th class="p-3 text-center">Assigned Score Value (100%)</th>
+                            <th class="p-3 text-right">Status Flag Assessment</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reportCardTableBody" class="divide-y divide-slate-200 font-medium text-slate-700">
+                    </tbody>
+                    <tfoot>
+                        <tr class="bg-slate-100 font-bold text-slate-900 border-t-2 border-slate-300">
+                            <td class="p-3 text-left uppercase text-[10px] tracking-wide">Sum Total Score Accumulated</td>
+                            <td id="cardSumTotal" class="p-3 text-center font-mono text-sm text-slate-950 font-black">--</td>
+                            <td class="p-3 text-right text-slate-400 font-normal italic text-[11px]">Points Aggregate</td>
+                        </tr>
+                        <tr class="bg-indigo-50 font-bold text-indigo-950 border-b">
+                            <td class="p-3 text-left uppercase text-[10px] tracking-wide">Cumulative Average Performance</td>
+                            <td id="cardAverage" class="p-3 text-center font-mono text-base text-indigo-700 font-black">--</td>
+                            <td id="cardStatus" class="p-3 text-right uppercase tracking-wider text-[11px]">--</td>
+                        </tr>
+                        <tr class="bg-slate-50 font-bold text-slate-900">
+                            <td class="p-3 text-left uppercase text-[10px] tracking-wide">Cohort Class Placement Rank</td>
+                            <td id="cardRank" class="p-3 text-center font-mono text-sm text-purple-700 font-black">--</td>
+                            <td class="p-3 text-right text-slate-400 font-normal italic text-[11px]">Section Standing</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <div class="pt-10 grid grid-cols-2 gap-12 text-center text-xs">
+                <div class="space-y-3">
+                    <div class="border-b border-slate-400 mx-auto w-48 h-8"></div>
+                    <p class="font-semibold text-slate-500 uppercase tracking-wider text-[10px]">Class Form Instructor Signature</p>
+                </div>
+                <div class="space-y-3">
+                    <div class="border-b border-slate-400 mx-auto w-48 h-8"></div>
+                    <p class="font-semibold text-slate-500 uppercase tracking-wider text-[10px]">Office of the Registrar / Principal</p>
+                </div>
+            </div>
+
+            <div class="flex justify-end pt-2 border-t border-dashed no-print">
+                <button onclick="window.print()" class="bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs px-4 py-2 rounded-lg shadow-xs transition cursor-pointer">
+                    🖨️ Dispatch Print Job
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <script src="app.js"></script>
+    <script>
+        function formatSubjectName(sub) {
+            if(!sub) return 'Module Domain';
+            return sub.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+        }
+
+        function generateReportCard() {
+            const searchInput = document.getElementById('searchUsername').value.trim().toLowerCase();
+            const printArea = document.getElementById('reportCardPrintArea');
+            
+            if(!searchInput) {
+                alert("Please provide a valid Student Username profile target.");
+                return;
+            }
+
+            const users = DB.getUsers() || [];
+            const results = DB.getResults() || [];
+
+            const targetStudent = users.find(u => u.role === 'student' && String(u.username).trim().toLowerCase() === searchInput);
+
+            if(!targetStudent) {
+                alert(`Error: No active profile matching student ID [${searchInput}] exists inside system database.`);
+                printArea.classList.add('hidden');
+                return;
+            }
+
+            const grade = targetStudent.grade || "9";
+            const stream = targetStudent.stream || "None";
+            const section = targetStudent.section || "A";
+
+            let courseKey = grade;
+            if (grade === '11' || grade === '12') {
+                if (stream.toLowerCase().includes('natural')) courseKey = `${grade}-Natural`;
+                if (stream.toLowerCase().includes('social')) courseKey = `${grade}-Social`;
+            }
+
+            const localCourseMap = typeof CourseMap !== 'undefined' ? CourseMap : {
+                "9": ["Mathematics", "English", "Physics", "Chemistry", "Biology", "History", "Geography", "ICT", "HPE"],
+                "10": ["Mathematics", "English", "Physics", "Chemistry", "Biology", "History", "Geography", "ICT", "HPE"],
+                "11-Natural": ["Mathematics", "English", "Physics", "Chemistry", "Biology", "ICT", "Agriculture", "Web_Design"],
+                "11-Social": ["Mathematics", "English", "Geography", "History", "Economics", "ICT", "Marketing"],
+                "12-Natural": ["Mathematics", "English", "Physics", "Chemistry", "Biology", "ICT", "Agriculture", "Web_Design"],
+                "12-Social": ["Mathematics", "English", "Geography", "History", "Economics", "ICT", "Marketing"]
+            };
+
+            const expectedSubjects = localCourseMap[courseKey] || [];
+            const tbody = document.getElementById('reportCardTableBody');
+            tbody.innerHTML = '';
+
+            let marksSum = 0;
+            let scoredUnitsCount = 0;
+
+            expectedSubjects.forEach(sub => {
+                const record = results.find(r => 
+                    String(r.username).trim().toLowerCase() === targetStudent.username.toLowerCase() && 
+                    String(r.subject).trim().toLowerCase() === sub.trim().toLowerCase()
+                );
+
+                let scoreDisplay = '--';
+                let statusLabel = '<span class="text-slate-300 italic font-normal">Pending Input</span>';
+
+                if(record && record.score !== null && record.score !== "" && !isNaN(record.score)) {
+                    const scoreNum = parseFloat(record.score);
+                    scoreDisplay = scoreNum;
+                    marksSum += scoreNum;
+                    scoredUnitsCount++;
+
+                    if(scoreNum >= 50) {
+                        statusLabel = '<span class="text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">Pass</span>';
+                    } else {
+                        statusLabel = '<span class="text-red-600 bg-red-50 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">Fail</span>';
+                    }
+                }
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50/60 transition";
+                tr.innerHTML = `
+                    <td class="p-3 font-semibold text-slate-800">${formatSubjectName(sub)}</td>
+                    <td class="p-3 text-center font-mono font-bold text-slate-900">${scoreDisplay}</td>
+                    <td class="p-3 text-right">${statusLabel}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('cardName').innerText = targetStudent.name;
+            document.getElementById('cardID').innerText = targetStudent.username;
+            document.getElementById('cardGender').innerText = targetStudent.gender || 'General';
+            document.getElementById('cardAge').innerText = targetStudent.age || '-';
+            
+            const displayStream = stream !== 'None' ? ` (${stream})` : '';
+            document.getElementById('cardClassKey').innerText = `Grade ${grade}${displayStream} - Sec ${section}`;
+
+            if(scoredUnitsCount > 0) {
+                const finalAverage = marksSum / scoredUnitsCount;
+                
+                document.getElementById('cardSumTotal').innerText = marksSum.toFixed(0); 
+                document.getElementById('cardAverage').innerText = finalAverage.toFixed(1) + '%';
+                
+                if(finalAverage >= 50) {
+                    document.getElementById('cardStatus').className = "p-3 text-right font-black text-emerald-600 tracking-wider";
+                    document.getElementById('cardStatus').innerText = "Promoted Status Authorized";
+                } else {
+                    document.getElementById('cardStatus').className = "p-3 text-right font-black text-red-600 tracking-wider";
+                    document.getElementById('cardStatus').innerText = "Academic Retention Flagged";
+                }
+
+                // --- SECTION COHORT RANKING ALGORITHM ---
+                const peers = users.filter(u => 
+                    u.role === 'student' && 
+                    String(u.grade).trim() === String(targetStudent.grade).trim() && 
+                    String(u.section).trim() === String(targetStudent.section).trim() &&
+                    String(u.stream || '').trim().toLowerCase() === String(targetStudent.stream || '').trim().toLowerCase()
+                );
+
+                const rankedCohort = peers.map(p => {
+                    const peerScores = results.filter(r => String(r.username).trim().toLowerCase() === String(p.username).trim().toLowerCase());
+                    let validScores = [];
+                    peerScores.forEach(r => {
+                        if(r.score !== null && r.score !== "" && !isNaN(r.score)) {
+                            validScores.push(parseFloat(r.score));
+                        }
+                    });
+
+                    if(validScores.length === 0) return { username: p.username, avg: 0 };
+                    const sum = validScores.reduce((a, b) => a + b, 0);
+                    return { username: p.username, avg: sum / validScores.length };
+                });
+
+                rankedCohort.sort((a, b) => b.avg - a.avg);
+                const positionIndex = rankedCohort.findIndex(item => String(item.username).trim().toLowerCase() === String(targetStudent.username).trim().toLowerCase());
+                const finalRank = positionIndex !== -1 ? (positionIndex + 1) : '--';
+                
+                document.getElementById('cardRank').innerText = `${finalRank} / ${rankedCohort.length}`;
+
+            } else {
+                document.getElementById('cardSumTotal').innerText = '--';
+                document.getElementById('cardAverage').innerText = '--';
+                document.getElementById('cardRank').innerText = '--';
+                document.getElementById('cardStatus').className = "p-3 text-right text-slate-400 font-normal italic";
+                document.getElementById('cardStatus').innerText = "Incomplete Records Matrix";
+            }
+
+            printArea.classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>

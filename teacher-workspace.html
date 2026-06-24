@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Teacher Workspace Portal</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <nav class="bg-green-700 text-white p-4 flex justify-between items-center shadow-md">
+        <div>
+            <h1 class="text-lg font-bold">🏫 Teacher Workspace: <span id="teacherName"></span></h1>
+            <p class="text-xs bg-green-800 px-2 py-0.5 rounded inline-block mt-1">Assigned Subject: <span id="teacherSubject" class="font-bold"></span></p>
+        </div>
+        <div class="flex items-center gap-3">
+		<div class="relative w-full max-w-md no-print">
+    <div class="relative">
+        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">🔍</span>
+        <input type="text" id="globalSystemSearch" oninput="executeGlobalSearch()" placeholder="Search system profiles (Name, ID, Grade...)" 
+            class="w-full bg-slate-800 text-slate-100 placeholder-slate-400 text-xs pl-9 pr-4 py-2 rounded-lg border border-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition">
+    </div>
+    <div id="globalSearchResults" class="hidden absolute left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-slate-200 max-h-80 overflow-y-auto z-50 divide-y divide-slate-100">
+    </div>
+</div>
+            <button id="toggleViewModeBtn" onclick="toggleAssessmentMode()" class="text-sm bg-amber-500 hover:bg-amber-600 px-4 py-1.5 rounded cursor-pointer font-bold shadow text-gray-900 transition flex items-center gap-1">
+                🔄Contineous Assessment
+            </button>
+            <button onclick="sessionStorage.clear(); window.location.href='login.html'" class="text-sm bg-red-600 px-3 py-1.5 rounded cursor-pointer font-semibold shadow hover:bg-red-700 transition">Logout</button>
+        </div>
+    </nav>
+	
+    <div id="workspaceContainer" class="w-full max-w-6xl mx-auto my-8 px-4 space-y-6 transition-all duration-300">
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="bg-white p-6 rounded-xl border border-red-100 shadow-sm flex justify-between items-center">
+                <div>
+                    <span class="text-xs font-bold text-gray-400 uppercase tracking-wider block">Below Benchmark (&lt;50)</span>
+                    <span id="statBelow" class="text-3xl font-extrabold text-red-600">0</span>
+                </div>
+                <div class="bg-red-50 p-3 rounded-full text-xl">🚨</div>
+            </div>
+            <div class="bg-white p-6 rounded-xl border border-blue-100 shadow-sm flex justify-between items-center">
+                <div>
+                    <span class="text-xs font-bold text-gray-400 uppercase tracking-wider block">Satisfactory Range (50-74)</span>
+                    <span id="statSatisfactory" class="text-3xl font-extrabold text-blue-600">0</span>
+                </div>
+                <div class="bg-blue-50 p-3 rounded-full text-xl">🟢</div>
+            </div>
+            <div class="bg-white p-6 rounded-xl border border-green-100 shadow-sm flex justify-between items-center">
+                <div>
+                    <span class="text-xs font-bold text-gray-400 uppercase tracking-wider block">Excellent Scale (75-100)</span>
+                    <span id="statExcellent" class="text-3xl font-extrabold text-green-600">0</span>
+                </div>
+                <div class="bg-green-50 p-3 rounded-full text-xl">⭐</div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div class="bg-white p-4 rounded-xl shadow-sm border h-fit space-y-4 col-span-1">
+                <h3 class="font-bold text-gray-700 border-b pb-2">Target Filter</h3>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1">GRADE LEVEL</label>
+                    <select id="workGrade" class="w-full border p-2 rounded bg-white text-sm">
+                        <option value="9">Grade 9</option>
+                        <option value="10">Grade 10</option>
+                        <option value="11">Grade 11</option>
+                        <option value="12">Grade 12</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1">STREAM (11 & 12 ONLY)</label>
+                    <select id="workStream" class="w-full border p-2 rounded bg-white text-sm">
+                        <option value="None">None (Grade 9/10)</option>
+                        <option value="Natural">Natural Science</option>
+                        <option value="Social">Social Science</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1">SECTION</label>
+                    <select id="workSection" class="w-full border p-2 rounded bg-white text-sm">
+                        <option value="A">A</option>
+                        <option value="B">B</option>
+                        <option value="C">C</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1">GENDER SEGMENT</label>
+                    <select id="workGenderFilter" class="w-full border p-2 rounded bg-white text-sm">
+                        <option value="All">All Genders</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                    </select>
+                </div>
+                <button id="loadStudentsBtn" class="w-full bg-green-600 text-white font-semibold py-2 rounded shadow hover:bg-green-700 cursor-pointer transition text-sm">Fetch Class List</button>
+            </div>
+
+            <div class="md:col-span-3 bg-white p-6 rounded-xl shadow-sm border space-y-6 overflow-hidden">
+                <div class="flex flex-wrap justify-between items-center gap-4 border-b pb-4">
+                    <div>
+                        <h2 class="text-xl font-bold text-gray-800">Student Entry Registry</h2>
+                        <p class="text-xs text-gray-500">Target Segment Key: <span id="segmentKey" class="font-mono text-green-600 font-bold">None Selected</span></p>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button id="exportBtn" class="bg-blue-600 text-white text-xs px-3 py-2 rounded hover:bg-blue-700 cursor-pointer">💾 Export Template</button>
+                        <label class="bg-amber-600 text-white text-xs px-3 py-2 rounded cursor-pointer hover:bg-amber-700">
+                            📥 Import XLSX
+                            <input type="file" id="importFile" accept=".xlsx, .xls" class="hidden">
+                        </label>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm border-collapse">
+                        <thead id="studentTableHeader"></thead>
+                        <tbody id="studentTableBody">
+                            <tr>
+                                <td id="fallbackRow" colspan="6" class="p-4 text-center text-gray-400">Apply target filters to display students.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="flex justify-end space-x-3 pt-4 border-t">
+                    <button id="saveLocalBtn" class="bg-blue-500 text-white font-bold px-5 py-2 rounded shadow hover:bg-blue-600 cursor-pointer text-sm">💾 Save Changes as Draft</button>
+                    <button id="sendReportBtn" class="bg-emerald-600 text-white font-bold px-5 py-2 rounded shadow hover:bg-emerald-700 cursor-pointer text-sm">🚀 Dispatch Report to Administration</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        const auth = JSON.parse(sessionStorage.getItem('currentUser'));
+if(!auth || auth.role !== 'teacher') window.location.href = 'login.html';
+        
+const teacherSubject = auth.subject || "English"; 
+document.getElementById('teacherName').innerText = auth.name;
+document.getElementById('teacherSubject').innerText = teacherSubject.replace(/_/g, ' ');
+
+let activelyLoadedStudents = [];
+let detailedBreakdownMode = false; // Initial mode defaults to simple configuration view
+
+// Mode Toggler Execution
+function toggleAssessmentMode() {
+    detailedBreakdownMode = !detailedBreakdownMode;
+    const toggleBtn = document.getElementById('toggleViewModeBtn');
+    const container = document.getElementById('workspaceContainer');
+
+    if(detailedBreakdownMode) {
+        toggleBtn.innerText = "🔄 Switch to Simple Score Mode";
+        toggleBtn.className = "text-sm bg-blue-500 hover:bg-blue-600 px-4 py-1.5 rounded cursor-pointer font-bold shadow text-white transition flex items-center gap-1";
+        container.className = "w-full max-w-[96%] mx-auto my-8 px-4 space-y-6 transition-all duration-300";
+    } else {
+        toggleBtn.innerText = "🔄 Switch to Detailed Breakdown Mode";
+        toggleBtn.className = "text-sm bg-amber-500 hover:bg-amber-600 px-4 py-1.5 rounded cursor-pointer font-bold shadow text-gray-900 transition flex items-center gap-1";
+        container.className = "w-full max-w-6xl mx-auto my-8 px-4 space-y-6 transition-all duration-300";
+    }
+
+    // Rerender list dynamically keeping current fields data state
+    const grade = document.getElementById('workGrade').value;
+    const stream = document.getElementById('workStream').value;
+    if(activelyLoadedStudents.length > 0) {
+        renderTable(grade, stream);
+    }
+}
+
+// Live Row Evaluator used during detailed entry computations
+function updateLiveRowTotals(username) {
+    if(!detailedBreakdownMode) return;
+    const getVal = (id) => parseFloat(document.getElementById(`${id}-${username}`).value) || 0;
+    
+    const totalCA = getVal('cw') + getVal('hw') + getVal('cp') + getVal('eb') + getVal('ht') + getVal('qz') + getVal('ga') + getVal('proj') + getVal('ia') + getVal('ue');
+    document.getElementById(`totalCA-${username}`).innerText = totalCA.toFixed(1);
+
+    const totalEx = getVal('mid') + getVal('fin');
+    document.getElementById(`totalEx-${username}`).innerText = totalEx.toFixed(1);
+
+    document.getElementById(`grandTotal-${username}`).innerText = (totalCA + totalEx).toFixed(0);
+}
+
+// Async Benchmark Calculations connected directly to Supabase Context drivers
+async function calculatePerformanceBenchmarks(currentClassKey, selectedGender) {
+    // Await async responses from backend cloud infrastructure
+    const results = await window.DB.getResults();
+    const users = await window.DB.getUsers();
+
+    const targetClassUsernames = users
+        .filter(u => u.role === 'student' && u.classKey === currentClassKey && (selectedGender === 'All' || String(u.gender || '').toLowerCase() === selectedGender.toLowerCase()))
+        .map(u => u.username);
+
+    const classResults = results.filter(r => r.subject === teacherSubject && targetClassUsernames.includes(r.username));
+
+    let belowCount = 0, satisfactoryCount = 0, excellentCount = 0;
+
+    classResults.forEach(r => {
+        let score = 0;
+        if (r.breakdown) {
+            // Support object structures parsed dynamically from storage columns
+            const currentBreakdown = typeof r.breakdown === 'string' ? JSON.parse(r.breakdown) : r.breakdown;
+            score = Object.values(currentBreakdown).reduce((sum, v) => sum + (parseFloat(v) || 0), 0);
+        } else {
+            score = parseFloat(r.score) || 0;
+        }
+
+        if (!isNaN(score)) {
+            if (score < 50) belowCount++;
+            else if (score >= 50 && score <= 74) satisfactoryCount++;
+            else if (score >= 75) excellentCount++;
+        }
+    });
+
+    document.getElementById('statBelow').innerText = belowCount;
+    document.getElementById('statSatisfactory').innerText = satisfactoryCount;
+    document.getElementById('statExcellent').innerText = excellentCount;
+}
+
+// Student Loading Handler converted to run asynchronously
+document.getElementById('loadStudentsBtn').addEventListener('click', async () => {
+    const grade = document.getElementById('workGrade').value;
+    const stream = document.getElementById('workStream').value;
+    const section = document.getElementById('workSection').value;
+    const selectedGender = document.getElementById('workGenderFilter').value;
+
+    let queryKey = (parseInt(grade) >= 11 && stream !== 'None') ? `${grade}-${stream}${section}` : `${grade}${section}`;
+    document.getElementById('segmentKey').innerText = queryKey + (selectedGender !== 'All' ? ` (${selectedGender}s)` : '');
+
+    const tBody = document.getElementById('studentTableBody');
+    tBody.innerHTML = `<tr><td colspan="18" class="p-4 text-center text-slate-500 font-medium">⏳ Syncing with Cloud Database Layer...</td></tr>`;
+
+    const allUsers = await window.DB.getUsers();
+    const reports = await window.DB.getReports() || [];
+    const dispatchedUsernames = [];
+    
+    reports.filter(rep => rep.teacher === auth.name && rep.segment === queryKey).forEach(rep => {
+        const reportData = typeof rep.data === 'string' ? JSON.parse(rep.data) : rep.data;
+        if(reportData) reportData.forEach(item => dispatchedUsernames.push(item.username));
+    });
+
+    activelyLoadedStudents = allUsers.filter(u => u.role === 'student' && u.classKey === queryKey && !dispatchedUsernames.includes(u.username));
+    if (selectedGender !== 'All') {
+        activelyLoadedStudents = activelyLoadedStudents.filter(u => String(u.gender || '').toLowerCase() === selectedGender.toLowerCase());
+    }
+
+    await renderTable(grade, stream);
+    await calculatePerformanceBenchmarks(queryKey, selectedGender);
+});
+
+// Asynchronous UI Table Generation Engine
+async function renderTable(grade, stream) {
+    const tHead = document.getElementById('studentTableHeader');
+    const tBody = document.getElementById('studentTableBody');
+    
+    tHead.innerHTML = '';
+    tBody.innerHTML = '';
+
+    if (activelyLoadedStudents.length === 0) {
+        const totalCols = detailedBreakdownMode ? 18 : 6;
+        tBody.innerHTML = `<tr><td colspan="${totalCols}" class="p-4 text-center text-gray-400 text-sm">No active draft students found matching parameters. Items may be dispatched or unassigned.</td></tr>`;
+        return;
+    }
+
+    const lookupKey = (parseInt(grade) >= 11) ? `${grade}-${stream}` : grade;
+    if (!(CourseMap[lookupKey] || []).includes(teacherSubject)) {
+        const totalCols = detailedBreakdownMode ? 18 : 6;
+        tBody.innerHTML = `<tr><td colspan="${totalCols}" class="p-4 text-center text-amber-600 font-medium bg-amber-50 text-sm rounded-md">Your assigned subject (${teacherSubject.replace(/_/g, ' ')}) is not taught in ${lookupKey}.</td></tr>`;
+        return;
+    }
+
+    // Await live scores from backend cloud context driver
+    const currentResults = await window.DB.getResults();
+
+    if (!detailedBreakdownMode) {
+        tHead.innerHTML = `
+            <tr class="bg-gray-100 border-b text-gray-600 uppercase text-xs">
+                <th class="p-3">Username</th>
+                <th class="p-3">Student Name</th>
+                <th class="p-3">Gender</th>
+                <th class="p-3">Course Module</th>
+                <th class="p-3 w-32">Numeric Score</th>
+                <th class="p-3 text-right">Actions</th>
+            </tr>
+        `;
+
+        activelyLoadedStudents.forEach(stu => {
+            const savedRecord = currentResults.find(r => r.username === stu.username && r.subject === teacherSubject) || {};
+            let scoreVal = savedRecord.score !== undefined ? savedRecord.score : '';
+            
+            if(savedRecord.breakdown) {
+                const bData = typeof savedRecord.breakdown === 'string' ? JSON.parse(savedRecord.breakdown) : savedRecord.breakdown;
+                scoreVal = Object.values(bData).reduce((sum, v) => sum + (parseFloat(v) || 0), 0).toFixed(0);
+            }
+
+            const tr = document.createElement('tr');
+            tr.className = "border-b hover:bg-gray-50 transition-colors text-gray-700 text-sm";
+            tr.innerHTML = `
+                <td class="p-3 font-mono text-xs font-bold text-gray-900">${stu.username}</td>
+                <td class="p-3 font-medium">${stu.name}</td>
+                <td class="p-3 text-xs text-gray-500 font-semibold">${stu.gender || '-'}</td>
+                <td class="p-3 text-gray-600 font-semibold text-xs">${teacherSubject.replace(/_/g, ' ')}</td>
+                <td class="p-3">
+                    <input type="number" id="score-${stu.username}" data-user="${stu.username}" value="${scoreVal}" min="0" max="100" class="score-input w-20 border rounded p-1 text-center font-mono focus:ring-2 focus:ring-green-500 outline-none">
+                </td>
+                <td class="p-3 text-right">
+                    <button onclick="deleteRowRecord('${stu.username}')" class="text-xs bg-red-100 hover:bg-red-200 text-red-700 font-bold px-2 py-1 rounded transition cursor-pointer">Clear</button>
+                </td>
+            `;
+            tBody.appendChild(tr);
+        });
+    } else {
+        tHead.innerHTML = `
+            <tr class="bg-gray-100 border-b text-gray-600 uppercase font-mono text-[11px]">
+                <th class="p-2 border">Username</th>
+                <th class="p-2 border min-w-[140px]">Student Name</th>
+                <th class="p-2 border text-center">Sex</th>
+                <th class="p-1 border text-center bg-gray-50" title="Class Work">CW<br><span class="text-[9px] text-gray-400">2%</span></th>
+                <th class="p-1 border text-center bg-gray-50" title="Home Work">HW<br><span class="text-[9px] text-gray-400">2%</span></th>
+                <th class="p-1 border text-center bg-gray-50" title="Class Participation">CP<br><span class="text-[9px] text-gray-400">2%</span></th>
+                <th class="p-1 border text-center bg-gray-50" title="Exercise Book">EB<br><span class="text-[9px] text-gray-400">2%</span></th>
+                <th class="p-1 border text-center bg-gray-50" title="Home Task">HT<br><span class="text-[9px] text-gray-400">5%</span></th>
+                <th class="p-1 border text-center bg-gray-50" title="Quiz">Qz<br><span class="text-[9px] text-gray-400">5%</span></th>
+                <th class="p-1 border text-center bg-gray-50" title="Group Assignment">GA<br><span class="text-[9px] text-gray-400">4%</span></th>
+                <th class="p-1 border text-center bg-gray-50" title="Project">Proj<br><span class="text-[9px] text-gray-400">4%</span></th>
+                <th class="p-1 border text-center bg-gray-50" title="Individual Assignment">IA<br><span class="text-[9px] text-gray-400">4%</span></th>
+                <th class="p-1 border text-center bg-gray-50" title="Unit Examination">UE<br><span class="text-[9px] text-gray-400">5%</span></th>
+                <th class="p-2 border text-center font-bold bg-blue-50 text-blue-800">Total CA<br><span class="text-[9px]">35%</span></th>
+                <th class="p-1 border text-center bg-amber-50" title="Written Mid Exam">Mid<br><span class="text-[9px] text-gray-500">25%</span></th>
+                <th class="p-1 border text-center bg-amber-50" title="Written Final Exam">Fin<br><span class="text-[9px] text-gray-500">40%</span></th>
+                <th class="p-2 border text-center font-bold bg-orange-50 text-orange-800">Total Ex<br><span class="text-[9px]">65%</span></th>
+                <th class="p-2 border text-center font-black bg-green-50 text-green-800 text-sm">Total<br><span class="text-[9px]">100%</span></th>
+                <th class="p-2 border text-right">Actions</th>
+            </tr>
+        `;
+
+        activelyLoadedStudents.forEach(stu => {
+            const rec = currentResults.find(r => r.username === stu.username && r.subject === teacherSubject) || {};
+            const b = (typeof rec.breakdown === 'string' ? JSON.parse(rec.breakdown) : rec.breakdown) || { cw:'', hw:'', cp:'', eb:'', ht:'', qz:'', ga:'', proj:'', ia:'', ue:'', mid:'', fin:'' };
+
+            const tr = document.createElement('tr');
+            tr.className = "border-b hover:bg-gray-50/50 transition-colors text-[11px] font-mono text-gray-700";
+            tr.innerHTML = `
+                <td class="p-2 border font-bold text-gray-900">${stu.username}</td>
+                <td class="p-2 border font-sans font-medium">${stu.name}</td>
+                <td class="p-2 border text-center font-sans">${stu.gender || '-'}</td>
+                <td class="p-0.5 border"><input type="number" step="0.1" id="cw-${stu.username}" value="${b.cw||''}" max="2" class="w-10 border text-center p-1 breakdown-input" data-user="${stu.username}" oninput="updateLiveRowTotals('${stu.username}')"></td>
+                <td class="p-0.5 border"><input type="number" step="0.1" id="hw-${stu.username}" value="${b.hw||''}" max="2" class="w-10 border text-center p-1 breakdown-input" data-user="${stu.username}" oninput="updateLiveRowTotals('${stu.username}')"></td>
+                <td class="p-0.5 border"><input type="number" step="0.1" id="cp-${stu.username}" value="${b.cp||''}" max="2" class="w-10 border text-center p-1 breakdown-input" data-user="${stu.username}" oninput="updateLiveRowTotals('${stu.username}')"></td>
+                <td class="p-0.5 border"><input type="number" step="0.1" id="eb-${stu.username}" value="${b.eb||''}" max="2" class="w-10 border text-center p-1 breakdown-input" data-user="${stu.username}" oninput="updateLiveRowTotals('${stu.username}')"></td>
+                <td class="p-0.5 border"><input type="number" step="0.1" id="ht-${stu.username}" value="${b.ht||''}" max="5" class="w-10 border text-center p-1 breakdown-input" data-user="${stu.username}" oninput="updateLiveRowTotals('${stu.username}')"></td>
+                <td class="p-0.5 border"><input type="number" step="0.1" id="qz-${stu.username}" value="${b.qz||''}" max="5" class="w-10 border text-center p-1 breakdown-input" data-user="${stu.username}" oninput="updateLiveRowTotals('${stu.username}')"></td>
+                <td class="p-0.5 border"><input type="number" step="0.1" id="ga-${stu.username}" value="${b.ga||''}" max="4" class="w-10 border text-center p-1 breakdown-input" data-user="${stu.username}" oninput="updateLiveRowTotals('${stu.username}')"></td>
+                <td class="p-0.5 border"><input type="number" step="0.1" id="proj-${stu.username}" value="${b.proj||''}" max="4" class="w-10 border text-center p-1 breakdown-input" data-user="${stu.username}" oninput="updateLiveRowTotals('${stu.username}')"></td>
+                <td class="p-0.5 border"><input type="number" step="0.1" id="ia-${stu.username}" value="${b.ia||''}" max="4" class="w-10 border text-center p-1 breakdown-input" data-user="${stu.username}" oninput="updateLiveRowTotals('${stu.username}')"></td>
+                <td class="p-0.5 border"><input type="number" step="0.1" id="ue-${stu.username}" value="${b.ue||''}" max="5" class="w-10 border text-center p-1 breakdown-input" data-user="${stu.username}" oninput="updateLiveRowTotals('${stu.username}')"></td>
+                <td id="totalCA-${stu.username}" class="p-2 border text-center font-bold bg-blue-50 text-blue-800">0.0</td>
+                <td class="p-0.5 border"><input type="number" step="0.1" id="mid-${stu.username}" value="${b.mid||''}" max="25" class="w-12 border text-center p-1 bg-amber-50/50 breakdown-input" data-user="${stu.username}" oninput="updateLiveRowTotals('${stu.username}')"></td>
+                <td class="p-0.5 border"><input type="number" step="0.1" id="fin-${stu.username}" value="${b.fin||''}" max="40" class="w-12 border text-center p-1 bg-amber-50/50 breakdown-input" data-user="${stu.username}" oninput="updateLiveRowTotals('${stu.username}')"></td>
+                <td id="totalEx-${stu.username}" class="p-2 border text-center font-bold bg-orange-50 text-orange-800">0.0</td>
+                <td id="grandTotal-${stu.username}" class="p-2 border text-center font-black bg-green-50 text-gray-900 text-[13px]">0</td>
+                <td class="p-2 border text-right">
+                    <button onclick="deleteRowRecord('${stu.username}')" class="text-[10px] bg-red-100 font-bold px-2 py-0.5 rounded text-red-700 hover:bg-red-200 cursor-pointer">Clear</button>
+                </td>
+            `;
+            tBody.appendChild(tr);
+            updateLiveRowTotals(stu.username);
+        });
+    }
+}
+
+// Clear individual cloud entries asynchronously
+async function deleteRowRecord(username) {
+    if (confirm(`Clear this student's local draft scores completely?`)) {
+        await window.DB.saveResult(username, teacherSubject, 0, null); // Wipe from Supabase
+        alert("Draft data wiped cleanly.");
+        document.getElementById('loadStudentsBtn').click();
+    }
+}
+
+// Asynchronous score state matrix capture system
+async function captureAndSaveScores() {
+    let savedRecordsList = [];
+
+    if (!detailedBreakdownMode) {
+        const inputs = document.querySelectorAll('.score-input');
+        for (const input of inputs) {
+            const username = input.dataset.user;
+            const score = parseFloat(input.value);
+
+            if (!isNaN(score)) {
+                const record = { username, subject: teacherSubject, score, status: 'draft', breakdown: null };
+                await window.DB.saveResult(username, teacherSubject, score, null);
+                savedRecordsList.push(record);
+            }
+        }
+    } else {
+        for (const stu of activelyLoadedStudents) {
+            const getVal = (id) => parseFloat(document.getElementById(`${id}-${stu.username}`).value) || 0;
+            
+            const breakdown = {
+                cw: getVal('cw'), hw: getVal('hw'), cp: getVal('cp'), eb: getVal('eb'),
+                ht: getVal('ht'), qz: getVal('qz'), ga: getVal('ga'), proj: getVal('proj'),
+                ia: getVal('ia'), ue: getVal('ue'), mid: getVal('mid'), fin: getVal('fin')
+            };
+
+            const totalScore = Object.values(breakdown).reduce((a, b) => a + b, 0);
+            
+            if(Object.values(breakdown).some(v => v > 0)) {
+                const roundedScore = Math.round(totalScore);
+                const record = { username: stu.username, subject: teacherSubject, score: roundedScore, breakdown, status: 'draft' };
+                await window.DB.saveResult(stu.username, teacherSubject, roundedScore, breakdown);
+                savedRecordsList.push(record);
+            }
+        }
+    }
+    return savedRecordsList;
+}
+
+// Save draft event trigger
+document.getElementById('saveLocalBtn').addEventListener('click', async () => {
+    const saveBtn = document.getElementById('saveLocalBtn');
+    saveBtn.innerText = "⏳ Processing Saves...";
+    saveBtn.disabled = true;
+
+    const records = await captureAndSaveScores();
+    
+    saveBtn.innerText = "💾 Save Marks Draft";
+    saveBtn.disabled = false;
+
+    if (records.length > 0) {
+        alert(`Successfully saved ${records.length} records securely to cloud storage.`);
+        const currentSegment = document.getElementById('segmentKey').innerText.split(' ')[0];
+        const selectedGender = document.getElementById('workGenderFilter').value;
+        await calculatePerformanceBenchmarks(currentSegment, selectedGender);
+    } else {
+        alert('Please input numerical score components before running cloud database updates.');
+    }
+});
+
+// Dispatch and Lock Report to Administration Module 
+document.getElementById('sendReportBtn').addEventListener('click', async () => {
+    const recordsSaved = await captureAndSaveScores();
+    if (recordsSaved.length === 0) {
+        return alert('Input valid score components before generating reports.');
+    }
+
+    if (confirm(`Are you sure you want to dispatch this report of ${recordsSaved.length} records to the Administration?`)) {
+        const activeSegmentKey = document.getElementById('segmentKey').innerText.split(' ')[0]; 
+        
+        // Map elements to pending status arrays for database consistency logs
+        const processedBatchRecords = recordsSaved.map(item => {
+            item.status = 'pending';
+            return item;
+        });
+
+        // Save generated structure log index to cloud schema index
+        await window.DB.saveReport({
+            id: 'REP-' + Date.now(),
+            teacher: auth.name,
+            segment: activeSegmentKey,
+            date: new Date().toLocaleDateString(),
+            data: processedBatchRecords,
+            approved: false
+        });
+
+        alert('Report successfully dispatched! Records are locked and sent to the admin dashboard.');
+        document.getElementById('loadStudentsBtn').click();
+    }
+});
+
+// Export Routine Template Engine
+document.getElementById('exportBtn').addEventListener('click', () => {
+    if(activelyLoadedStudents.length === 0) return alert('Load class records before exporting spreadsheet templates.');
+    
+    let dataRows = [];
+    if(!detailedBreakdownMode) {
+        activelyLoadedStudents.forEach(s => {
+            dataRows.push({ "Username": s.username, "Student Name": s.name, "Gender": s.gender || '-', "Subject": teacherSubject, "Score": "" });
+        });
+    } else {
+        activelyLoadedStudents.forEach(s => {
+            dataRows.push({ 
+                "Username": s.username, "Student Name": s.name, "Sex": s.gender || '-', "Subject": teacherSubject,
+                "CW": "", "HW": "", "CP": "", "EB": "", "HT": "", "Qz": "", "GA": "", "Proj": "", "IA": "", "UE": "", "Mid": "", "Fin": ""
+            });
+        });
+    }
+
+    const worksheet = XLSX.utils.json_to_sheet(dataRows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Grade Sheet");
+    XLSX.writeFile(workbook, `${teacherSubject}_Sheet_${document.getElementById('segmentKey').innerText.replace(/\s+/g, '')}.xlsx`);
+});
+
+// Excel Spreadsheet Importer Workflow Integration
+document.getElementById('importFile').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if(!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+        const data = new Uint8Array(event.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+        const importedJSON = XLSX.utils.sheet_to_json(worksheet);
+
+        let counts = 0;
+
+        for (const row of importedJSON) {
+            const username = row["Username"];
+            const subject = row["Subject"] || teacherSubject;
+            if (subject !== teacherSubject) continue;
+
+            if(!detailedBreakdownMode) {
+                const score = parseFloat(row["Score"]);
+                if(username && !isNaN(score)) {
+                    await window.DB.saveResult(username, teacherSubject, score, null);
+                    counts++;
+                }
+            } else {
+                if(username) {
+                    const breakdown = {
+                        cw: parseFloat(row["CW"]) || 0, hw: parseFloat(row["HW"]) || 0, cp: parseFloat(row["CP"]) || 0, eb: parseFloat(row["EB"]) || 0,
+                        ht: parseFloat(row["HT"]) || 0, qz: parseFloat(row["Qz"]) || 0, ga: parseFloat(row["GA"]) || 0, proj: parseFloat(row["Proj"]) || 0,
+                        ia: parseFloat(row["IA"]) || 0, ue: parseFloat(row["UE"]) || 0, mid: parseFloat(row["Mid"]) || 0, fin: parseFloat(row["Fin"]) || 0
+                    };
+                    const totalScore = Object.values(breakdown).reduce((a, b) => a + b, 0);
+                    await window.DB.saveResult(username, teacherSubject, Math.round(totalScore), breakdown);
+                    counts++;
+                }
+            }
+        }
+
+        alert(`Successfully parsed spreadsheet! Imported ${counts} records into drafts.`);
+        document.getElementById('loadStudentsBtn').click();
+    };
+    reader.readAsArrayBuffer(file);
+});
+
+// Universal Safe Page Context Table row filtering method for Global Search Bar
+function renderStudents(filterUsername = null) {
+    if (!filterUsername) return;
+    const rows = document.querySelectorAll('#studentTableBody tr');
+    rows.forEach(row => {
+        const usernameCell = row.querySelector('td');
+        if (usernameCell) {
+            const text = usernameCell.innerText.trim().toLowerCase();
+            if (text === filterUsername.toLowerCase()) {
+                row.style.display = "";
+                row.classList.add('bg-yellow-50'); // Highlight row match visually
+            } else {
+                row.style.display = "none";
+            }
+        }
+    });
+}
+    </script>
+</body>
+</html>

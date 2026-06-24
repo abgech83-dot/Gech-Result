@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Systems Performance Metrics Analyzer</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <nav class="bg-slate-800 text-white p-4 flex justify-between items-center shadow">
+        <h1 class="text-md font-bold">📈 Systems Analytics Breakdown Terminal</h1>
+        <a href="admin-records.html" class="text-xs bg-slate-700 px-3 py-1.5 rounded hover:bg-slate-600 transition">Back to Admin Hub</a>
+    </nav>
+
+    <main class="max-w-6xl mx-auto my-10 px-4 space-y-6">
+        
+        <div class="bg-white p-4 rounded-xl border shadow-sm flex flex-wrap items-end gap-4">
+            <div>
+                <label class="block text-xs font-bold text-gray-500 mb-1">SUBJECT MODULE</label>
+                <select id="filterSubject" class="border p-2 rounded bg-white text-sm w-44 font-medium">
+                    <option value="All">All Subjects</option>
+                    <option value="mathematics">Mathematics</option>
+                    <option value="english">English</option>
+                    <option value="physics">Physics</option>
+                    <option value="chemistry">Chemistry</option>
+                    <option value="biology">Biology</option>
+					<option value="economics">Economics</option>
+                    <option value="geography">Geography</option>
+                    <option value="history">History</option>
+                    <option value="agriculture">Agriculture</option>
+                    <option value="Web_design">Web design</option>
+					<option value="marketing">Marketing</option>
+                    <option value="citizenship">Citizenship</option>
+                    <option value="amharic">Amharic</option>
+                    <option value="Afaan_oromo">Afaan Oromo</option>
+                    <option value="hpe">HPE</option>
+					<option value="ict">ICT</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-500 mb-1">GRADE LEVEL</label>
+                <select id="filterGrade" class="border p-2 rounded bg-white text-sm w-32">
+                    <option value="All">All Grades</option>
+                    <option value="9">Grade 9</option>
+                    <option value="10">Grade 10</option>
+                    <option value="11">Grade 11</option>
+                    <option value="12">Grade 12</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-500 mb-1">STREAM (11 & 12)</label>
+                <select id="filterStream" class="border p-2 rounded bg-white text-sm w-40">
+                    <option value="All">All Streams</option>
+                    <option value="Natural">Natural Science</option>
+                    <option value="Social">Social Science</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-500 mb-1">SECTION</label>
+                <select id="filterSection" class="border p-2 rounded bg-white text-sm w-32">
+                    <option value="All">All Sections</option>
+                    <option value="A">Section A</option>
+                    <option value="B">Section B</option>
+                    <option value="C">Section C</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-500 mb-1">GENDER</label>
+                <select id="filterGender" class="border p-2 rounded bg-white text-sm w-32">
+                    <option value="All">All Genders</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                </select>
+            </div>
+            <button id="applyFiltersBtn" class="bg-slate-800 text-white px-5 py-2 rounded text-sm font-semibold hover:bg-slate-900 shadow transition cursor-pointer">Apply Filters</button>
+        </div>
+
+        <div class="grid md:grid-cols-3 gap-6">
+            <div class="bg-white p-6 rounded-xl border border-red-100 shadow-sm flex items-center justify-between">
+                <div>
+                    <span class="text-xs font-bold text-gray-400 uppercase tracking-wider block">Below Benchmark (&lt;50)</span>
+                    <span id="catLow" class="text-4xl font-black text-red-600 mt-1 block">0</span>
+                </div>
+                <div class="text-3xl bg-red-50 p-3 rounded-full">🚨</div>
+            </div>
+            <div class="bg-white p-6 rounded-xl border border-blue-100 shadow-sm flex items-center justify-between">
+                <div>
+                    <span class="text-xs font-bold text-gray-400 uppercase tracking-wider block">Satisfactory Range (50-74)</span>
+                    <span id="catMid" class="text-4xl font-black text-blue-600 mt-1 block">0</span>
+                </div>
+                <div class="text-3xl bg-blue-50 p-3 rounded-full">🟢</div>
+            </div>
+            <div class="bg-white p-6 rounded-xl border border-green-100 shadow-sm flex items-center justify-between">
+                <div>
+                    <span class="text-xs font-bold text-gray-400 uppercase tracking-wider block">Excellent Scale (75-100)</span>
+                    <span id="catHigh" class="text-4xl font-black text-green-600 mt-1 block">0</span>
+                </div>
+                <div class="text-3xl bg-green-50 p-3 rounded-full">⭐</div>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl border shadow-sm">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">Granular Filtered Breakdown Ledger</h2>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm border-collapse">
+                    <thead>
+                        <tr class="bg-gray-50 border-b text-gray-500 text-xs font-bold uppercase">
+                            <th class="p-3">Student Target</th>
+                            <th class="p-3">Full Profile Name</th>
+                            <th class="p-3">Gender</th>
+                            <th class="p-3">Subject Module</th>
+                            <th class="p-3 text-center">Score Evaluation</th>
+                            <th class="p-3 text-right">Performance Band</th>
+                        </tr>
+                    </thead>
+                    <tbody id="analyticsLedgerBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script src="app.js"></script>
+    <script>
+        const auth = JSON.parse(sessionStorage.getItem('currentUser'));
+        if(!auth || (auth.role !== 'admin' && auth.role !== 'teacher')) window.location.href = 'login.html';
+
+        function formatSubject(sub) {
+            return sub.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+        }
+        
+        function analyzeSystemData() {
+            const results = DB.getResults();
+            const users = DB.getUsers();
+
+            const selSubject = document.getElementById('filterSubject').value;
+            const selGrade = document.getElementById('filterGrade').value;
+            const selStream = document.getElementById('filterStream').value;
+            const selSection = document.getElementById('filterSection').value;
+            const selGender = document.getElementById('filterGender').value;
+
+            let low = 0, mid = 0, high = 0;
+            const ledgerBody = document.getElementById('analyticsLedgerBody');
+            ledgerBody.innerHTML = '';
+
+            let dynamicMatchCount = 0;
+
+            results.forEach(res => {
+                // Find the matching student account
+                const student = users.find(u => u.username === res.username);
+                if (!student) return;
+
+                // Extract values safely, handling multiple possible naming schemas
+                const studentGrade = student.grade || student.gradeLevel || "";
+                const studentSection = student.section || student.classSection || student.classKey || "";
+                const studentStream = student.stream || "";
+                const studentGender = student.gender || "";
+
+                // 1. SUBJECT FILTER MATCH
+                if (selSubject !== 'All' && String(res.subject).toLowerCase() !== String(selSubject).toLowerCase()) {
+                    return;
+                }
+
+                // 2. GRADE FILTER MATCH (Forces both to strings to avoid type issues)
+                if (selGrade !== 'All' && String(studentGrade).trim() !== String(selGrade).trim()) {
+                    return;
+                }
+                
+                // 3. SECTION FILTER MATCH
+                if (selSection !== 'All' && String(studentSection).trim().toUpperCase() !== String(selSection).trim().toUpperCase()) {
+                    return;
+                }
+                
+                // 4. STREAM FILTER MATCH (Only if Grade 11 or 12)
+                if (parseInt(studentGrade) >= 11) {
+                    if (selStream !== 'All' && String(studentStream).toLowerCase() !== String(selStream).toLowerCase()) {
+                        return;
+                    }
+                }
+
+                // 5. GENDER FILTER MATCH CHECKPOINT
+                if (selGender !== 'All' && String(studentGender).trim().toLowerCase() !== String(selGender).trim().toLowerCase()) {
+                    return;
+                }
+
+                // If it passes all structural checkpoints, count it and display it!
+                dynamicMatchCount++;
+
+                let segmentBadge = '';
+                if (res.score < 50) {
+                    low++;
+                    segmentBadge = '<span class="bg-red-100 text-red-800 text-xs px-2 py-0.5 rounded font-medium">Below 50</span>';
+                } else if (res.score <= 74) {
+                    mid++;
+                    segmentBadge = '<span class="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded font-medium">50 - 74</span>';
+                } else {
+                    high++;
+                    segmentBadge = '<span class="bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded font-medium">75 - 100</span>';
+                }
+
+                const tr = document.createElement('tr');
+                tr.className = "border-b text-gray-700 hover:bg-gray-50/50";
+                tr.innerHTML = `
+                    <td class="p-3 font-mono text-xs font-semibold">${res.username}</td>
+                    <td class="p-3 font-medium">${student.name || res.username}</td>
+                    <td class="p-3 text-gray-500 text-xs">${studentGender || '-'}</td>
+                    <td class="p-3 text-gray-600 font-mono text-xs font-semibold">${formatSubject(res.subject)}</td>
+                    <td class="p-3 text-center font-mono font-bold">${res.score}</td>
+                    <td class="p-3 text-right">${segmentBadge}</td>
+                `;
+                ledgerBody.appendChild(tr);
+            });
+
+            if (dynamicMatchCount === 0) {
+                ledgerBody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-gray-400 text-sm">No results match selected parameters.</td></tr>`;
+            }
+
+            // Update dynamic metric summary components
+            document.getElementById('catLow').innerText = low;
+            document.getElementById('catMid').innerText = mid;
+            document.getElementById('catHigh').innerText = high;
+        }
+
+        document.getElementById('applyFiltersBtn').addEventListener('click', analyzeSystemData);
+        analyzeSystemData();
+    </script>
+</body>
+</html>

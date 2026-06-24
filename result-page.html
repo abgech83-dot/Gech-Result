@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Academic Transcript Lookup</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="max-w-3xl mx-auto py-12 px-4">
+        <div class="bg-white rounded-xl shadow-md overflow-hidden border">
+            <div class="bg-blue-600 p-6 text-white flex justify-between items-start">
+                <div>
+                    <span class="text-xs font-mono uppercase opacity-75 bg-blue-700 px-2 py-0.5 rounded" id="studentClass">Class Key</span>
+                    <h2 class="text-2xl font-black mt-2" id="studentLabel">Student Profile Name</h2>
+                    <p class="text-sm opacity-90 font-mono mt-0.5">ID Ref: <span id="studentUser"></span></p>
+                </div>
+                <button onclick="sessionStorage.clear(); window.location.href='login.html'" class="bg-blue-800 text-xs px-3 py-1.5 rounded hover:bg-blue-900 transition">Sign Out</button>
+            </div>
+
+            <div class="p-6 space-y-6">
+                <div>
+                    <h3 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Academic Grade Report</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm border-collapse">
+                            <thead>
+                                <tr class="bg-gray-50 border-b text-gray-500 text-xs uppercase font-bold">
+                                    <th class="p-3">Course / Curricular Track</th>
+                                    <th class="p-3 text-center w-24">Earned Score</th>
+                                    <th class="p-3 text-right w-36">Status Metric</th>
+                                </tr>
+                            </thead>
+                            <tbody id="transcriptBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-4 border-t pt-6 text-center">
+                    <div class="bg-gray-50 p-3 rounded-lg border">
+                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Sum Total Score</span>
+                        <span id="cardSumTotal" class="text-xl font-black text-gray-800 font-mono">--</span>
+                    </div>
+                    <div class="bg-gray-50 p-3 rounded-lg border">
+                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Cumulative Average</span>
+                        <span id="cardAverage" class="text-xl font-black text-blue-600 font-mono">--</span>
+                    </div>
+                    <div class="bg-gray-50 p-3 rounded-lg border">
+                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Class Placement Rank</span>
+                        <span id="cardRank" class="text-xl font-black text-purple-700 font-mono">--</span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+// --- ASYNC STUDENT REPORT CARD GENERATOR ---
+async function initializeStudentReportCard() {
+    try {
+        // 1. Verify a valid student session context state is active
+        const auth = JSON.parse(sessionStorage.getItem('currentUser'));
+        if(!auth || auth.role !== 'student') {
+            window.location.href = 'login.html';
+            return;
+        }
+
+        // 2. Set the UI profile header info fields
+        if(document.getElementById('studentLabel')) document.getElementById('studentLabel').innerText = auth.name;
+        if(document.getElementById('studentUser'))  document.getElementById('studentUser').innerText = auth.username;
+        if(document.getElementById('studentClass')) {
+            document.getElementById('studentClass').innerText = `Class Context: ${auth.classKey || 'General Section'}`;
+        }
+
+        // 3. Setup temporary visual loading status inside the tables
+        const tableBody = document.getElementById('transcriptBody');
+        if(tableBody) {
+            tableBody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-gray-400 text-sm">⏳ Downloading your academic records from the cloud...</td></tr>`;
+        }
+
+        // Normalize stream tracking parameters
+        const studentStream = auth.stream && auth.stream !== "None" ? auth.stream : "";
+        const lookupKey = studentStream ? `${auth.grade}-${studentStream}` : auth.grade;
+        
+        const prescribedSubjects = CourseMap[lookupKey] || [];
+
+        // 4. Fetch your global users and results data tables concurrently via Supabase cloud promises
+        const [systemResults, users] = await Promise.all([
+            DB.getResults() || [],
+            DB.getUsers() || []
+        ]);
+
+        if(tableBody) tableBody.innerHTML = ''; // Clear loading screen text safely
+
+        let totalMarks = 0;
+        let scoredSubjectsCount = 0;
+
+        // 5. Generate and render subject rows dynamically
+        prescribedSubjects.forEach(sub => {
+            const entry = systemResults.find(r => r.username === auth.username && r.subject === sub);
+            const rawScore = entry ? entry.score : null;
+
+            let displayScore = '<span class="text-gray-400 italic font-normal text-xs">Pending Entry</span>';
+            let statusTag = '<span class="text-gray-400 text-xs">N/A</span>';
+
+            if (rawScore !== null && rawScore !== "" && !isNaN(rawScore)) {
+                const scoreNum = parseFloat(rawScore);
+                totalMarks += scoreNum;
+                scoredSubjectsCount++;
+
+                displayScore = `<span class="font-bold text-gray-900">${scoreNum}</span>`;
+                if(scoreNum >= 75) {
+                    statusTag = '<span class="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">⭐ Distinctive (75-100)</span>';
+                } else if(scoreNum >= 50) {
+                    statusTag = '<span class="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">🟢 Satisfactory (50-74)</span>';
+                } else {
+                    statusTag = '<span class="bg-red-100 text-red-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">🚨 Below Bench (0-49)</span>';
+                }
+            }
+
+            if(tableBody) {
+                const tr = document.createElement('tr');
+                tr.className = "border-b hover:bg-gray-50/50";
+                tr.innerHTML = `
+                    <td class="p-3 font-medium text-gray-700">${sub.replace(/_/g, ' ')}</td>
+                    <td class="p-3 text-center font-mono">${displayScore}</td>
+                    <td class="p-3 text-right">${statusTag}</td>
+                `;
+                tableBody.appendChild(tr);
+            }
+        });
+
+        // 6. Compute metrics and class rank safely 
+        if (scoredSubjectsCount > 0) {
+            const currentAverage = totalMarks / scoredSubjectsCount;
+
+            if(document.getElementById('cardSumTotal')) document.getElementById('cardSumTotal').innerText = totalMarks.toFixed(0);
+            if(document.getElementById('cardAverage'))  document.getElementById('cardAverage').innerText = currentAverage.toFixed(1) + '%';
+
+            // --- CLOUD-BASED COHORT RANKING ENGINE ---
+            const peerCohort = users.filter(u => {
+                if (u.role !== 'student') return false;
+                if (String(u.grade).trim() !== String(auth.grade).trim()) return false;
+                
+                const currentPeerSection = u.section ? String(u.section).trim().toLowerCase() : "";
+                const currentAuthSection = auth.section ? String(auth.section).trim().toLowerCase() : "";
+                if (currentPeerSection !== currentAuthSection) return false;
+                
+                const currentPeerStream = u.stream && u.stream !== "None" ? String(u.stream).trim().toLowerCase() : "";
+                const currentAuthStream = auth.stream && auth.stream !== "None" ? String(auth.stream).trim().toLowerCase() : "";
+                
+                return currentPeerStream === currentAuthStream;
+            });
+
+            const rankedCohort = peerCohort.map(p => {
+                const peerStream = p.stream && p.stream !== "None" ? p.stream : "";
+                const peerLookupKey = peerStream ? `${p.grade}-${peerStream}` : p.grade;
+                const peerExpectedSubjects = CourseMap[peerLookupKey] || [];
+                
+                let peerSum = 0;
+                let peerCount = 0;
+
+                peerExpectedSubjects.forEach(s => {
+                    const r = systemResults.find(res => res.username === p.username && res.subject === s);
+                    if (r && r.score !== null && r.score !== "" && !isNaN(r.score)) {
+                        peerSum += parseFloat(r.score);
+                        peerCount++;
+                    }
+                });
+
+                return {
+                    username: p.username,
+                    avg: peerCount > 0 ? (peerSum / peerCount) : 0
+                };
+            });
+
+            // Sort descending by average grades
+            rankedCohort.sort((a, b) => b.avg - a.avg);
+
+            const rankIndex = rankedCohort.findIndex(item => item.username === auth.username);
+            const classRank = rankIndex !== -1 ? (rankIndex + 1) : '--';
+
+            if(document.getElementById('cardRank')) {
+                document.getElementById('cardRank').innerText = `${classRank} / ${rankedCohort.length}`;
+            }
+        } else {
+            if(document.getElementById('cardSumTotal')) document.getElementById('cardSumTotal').innerText = '--';
+            if(document.getElementById('cardAverage'))  document.getElementById('cardAverage').innerText = '--';
+            if(document.getElementById('cardRank'))     document.getElementById('cardRank').innerText = '--';
+        }
+    } catch (err) {
+        console.error("Critical Transcript Engine Exception:", err);
+        const tableBody = document.getElementById('transcriptBody');
+        if(tableBody) {
+            tableBody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-red-500 text-xs font-semibold">⚠️ Cloud Network Error: Unable to compute report cards.</td></tr>`;
+        }
+    }
+}
+
+// Fire data processing exactly when the page container loads on screen
+document.addEventListener('DOMContentLoaded', initializeStudentReportCard);
+    </script>
+</body>
+</html>

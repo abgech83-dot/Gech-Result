@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Homeroom Advisor Portal</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+    <nav class="bg-indigo-900 text-white p-4 flex justify-between items-center shadow-md">
+        <div class="flex items-center space-x-3">
+            <span class="text-xl">🏡</span>
+            <div>
+                <h1 class="text-base font-bold leading-none">Homeroom Management Terminal</h1>
+                <p id="advisorMeta" class="text-xs text-indigo-200 mt-1 font-mono">Loading Advisor Context...</p>
+				<div class="relative w-full max-w-md no-print">
+    <div class="relative">
+        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">🔍</span>
+        <input type="text" id="globalSystemSearch" oninput="executeGlobalSearch()" placeholder="Search system profiles (Name, ID, Grade...)" 
+            class="w-full bg-slate-800 text-slate-100 placeholder-slate-400 text-xs pl-9 pr-4 py-2 rounded-lg border border-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition">
+    </div>
+    <div id="globalSearchResults" class="hidden absolute left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-slate-200 max-h-80 overflow-y-auto z-50 divide-y divide-slate-100">
+    </div>
+</div>
+            </div>
+        </div>
+        <div class="space-x-2 text-xs flex items-center">
+            <span id="classroomBadge" class="bg-indigo-800 text-white font-mono px-3 py-1 rounded-full font-bold border border-indigo-700/50">Class: --</span>
+            <button onclick="sessionStorage.clear(); window.location.href='login.html'" class="bg-red-600 hover:bg-red-700 px-3 py-1 rounded font-semibold transition cursor-pointer">Logout</button>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto my-8 px-4 space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Assigned Section Cohort</span>
+                <span id="metricTotalStudents" class="text-3xl font-black text-indigo-700">0</span>
+            </div>
+            <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Cumulative Class Average</span>
+                <span id="metricClassAverage" class="text-3xl font-black text-blue-600">0.0%</span>
+            </div>
+            <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Top Performing Student</span>
+                <span id="metricTopStudent" class="text-lg font-bold text-emerald-600 block truncate mt-2">--</span>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">📊 Class Performance Distribution Report</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+                <div class="bg-red-50 border border-red-100 p-4 rounded-lg">
+                    <span class="block text-xs font-bold text-red-500 uppercase">Below 50%</span>
+                    <span id="reportBelow50" class="text-2xl font-black text-red-700">0</span>
+                    <span class="text-[10px] text-red-400 block mt-0.5 font-medium">Students (<span id="below50Gender">M: 0 | F: 0</span>)</span>
+                </div>
+                <div class="bg-amber-50 border border-amber-100 p-4 rounded-lg">
+                    <span class="block text-xs font-bold text-amber-600 uppercase">50% - 74%</span>
+                    <span id="report50to74" class="text-2xl font-black text-amber-700">0</span>
+                    <span class="text-[10px] text-amber-500 block mt-0.5 font-medium">Students (<span id="range5074Gender">M: 0 | F: 0</span>)</span>
+                </div>
+                <div class="bg-emerald-50 border border-emerald-100 p-4 rounded-lg">
+                    <span class="block text-xs font-bold text-emerald-600 uppercase">75% - 100%</span>
+                    <span id="report75to100" class="text-2xl font-black text-emerald-700">0</span>
+                    <span class="text-[10px] text-emerald-500 block mt-0.5 font-medium">Students (<span id="above75Gender">M: 0 | F: 0</span>)</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-4">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-800">📊 Section Master Broad-Sheet Matrix</h2>
+                    <p class="text-xs text-slate-500">Aggregated student evaluation metrics compiled exclusively for your stream template.</p>
+                </div>
+            </div>
+            <div class="overflow-x-auto w-full">
+                <table class="w-full text-center text-xs border-collapse">
+                    <thead id="matrixHeader">
+                    </thead>
+                    <tbody id="matrixTableBody" class="divide-y divide-slate-100 text-slate-700 font-medium">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script src="app.js"></script>
+    <script>
+        // 1. Security Check
+        const auth = DB.getCurrentUser();
+        if (!auth || auth.role !== 'teacher' || auth.teacherType !== 'homeroom') {
+            window.location.href = 'login.html';
+        }
+
+        // 2. Load Advisor Configuration Variables
+        const advGrade = String(auth.assignedGrade || '9').trim();
+        const advSection = String(auth.assignedSection || 'A').trim();
+        const advStream = String(auth.assignedStream || 'None').trim();
+
+        // 3. Render Badges
+        document.getElementById('advisorMeta').innerText = `Advisor: ${auth.name || 'Faculty Advisor'}`;
+        const streamLabel = (advGrade === '11' || advGrade === '12') ? ` (${advStream})` : '';
+        document.getElementById('classroomBadge').innerText = `Class: Grade ${advGrade}${streamLabel} - Sec ${advSection}`;
+
+        // Fallback helper function to format clean column headers safely
+        function formatSubjectName(sub) {
+            if (!sub) return 'Module';
+            return sub.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+        }
+
+        function compileDynamicBroadsheet() {
+            const users = DB.getUsers() || [];
+            const results = DB.getResults() || [];
+
+            // 4. Resolve exact key matching definitions inside CourseMap
+            let courseKey = advGrade;
+            if (advGrade === '11' || advGrade === '12') {
+                if (advStream.toLowerCase().includes('natural')) {
+                    courseKey = `${advGrade}-Natural`;
+                } else if (advStream.toLowerCase().includes('social')) {
+                    courseKey = `${advGrade}-Social`;
+                }
+            }
+            
+            // Safe fallback map check if CourseMap definition is missing from app.js
+            const localCourseMap = typeof CourseMap !== 'undefined' ? CourseMap : {
+                "9": ["Mathematics", "English", "Physics", "Chemistry", "Biology", "History", "Geography", "ICT", "HPE"],
+                "10": ["Mathematics", "English", "Physics", "Chemistry", "Biology", "History", "Geography", "ICT", "HPE"],
+                "11-Natural": ["Mathematics", "English", "Physics", "Chemistry", "Biology", "ICT", "Agriculture", "Web_Design"],
+                "11-Social": ["Mathematics", "English", "Geography", "History", "Economics", "ICT", "Marketing"],
+                "12-Natural": ["Mathematics", "English", "Physics", "Chemistry", "Biology", "ICT", "Agriculture", "Web_Design"],
+                "12-Social": ["Mathematics", "English", "Geography", "History", "Economics", "ICT", "Marketing"]
+            };
+
+            const activeSubjects = localCourseMap[courseKey] || [];
+
+            // 5. Build Dynamic Columns (With Safe Headers + Added Total)
+            const headerEl = document.getElementById('matrixHeader');
+            let headerHTML = `<tr class="bg-slate-800 text-slate-200 font-bold uppercase text-[10px]"><th class="p-3 text-left">Student Profile</th><th class="p-2">Gender</th>`;
+            activeSubjects.forEach(sub => {
+                headerHTML += `<th class="p-2 bg-slate-700 font-mono text-[11px]">${formatSubjectName(sub)}</th>`;
+            });
+            headerHTML += `<th class="p-3 bg-slate-900">Total</th><th class="p-3 bg-indigo-950">Average</th><th class="p-3 bg-purple-900">Rank</th></tr>`;
+            headerEl.innerHTML = headerHTML;
+
+            // 6. Gather matching students
+            const classroomStudents = users.filter(u => {
+                if (u.role !== 'student') return false;
+                const matchGrade = String(u.grade).trim() === advGrade;
+                const matchSection = String(u.section).trim() === advSection;
+                
+                if (advGrade === '11' || advGrade === '12') {
+                    const matchStream = String(u.stream).trim().toLowerCase() === advStream.toLowerCase();
+                    return matchGrade && matchSection && matchStream;
+                }
+                return matchGrade && matchSection;
+            });
+
+            // Variables to track report distribution stats
+            let countBelow50 = 0;   let b50M = 0;  let b50F = 0;
+            let count50to74 = 0;   let r74M = 0;  let r74F = 0;
+            let count75to100 = 0;  let a75M = 0;  let a75F = 0;
+
+            // 7. Extract performance information mapping
+            let processedStudents = classroomStudents.map(student => {
+                let performanceMap = {};
+                let continuousSum = 0;
+                let validUnitsScored = 0;
+
+                activeSubjects.forEach(sub => {
+                    const record = results.find(r => 
+                        String(r.username).trim() === String(student.username).trim() && 
+                        String(r.subject).trim().toLowerCase() === sub.trim().toLowerCase()
+                    );
+                    
+                    if (record && record.score !== null && !isNaN(record.score) && record.score !== "") {
+                        const scoreNum = parseFloat(record.score);
+                        performanceMap[sub] = scoreNum;
+                        continuousSum += scoreNum;
+                        validUnitsScored++;
+                    } else {
+                        performanceMap[sub] = null;
+                    }
+                });
+
+                const studentAvg = validUnitsScored > 0 ? (continuousSum / validUnitsScored) : 0;
+                const genderClean = String(student.gender || '').trim().toLowerCase();
+
+                // Tally distribution statistics only for evaluated students
+                if (validUnitsScored > 0) {
+                    if (studentAvg < 50) {
+                        countBelow50++;
+                        if (genderClean.startsWith('m')) b50M++; else if (genderClean.startsWith('f')) b50F++;
+                    } else if (studentAvg >= 50 && studentAvg <= 74) {
+                        count50to74++;
+                        if (genderClean.startsWith('m')) r74M++; else if (genderClean.startsWith('f')) r74F++;
+                    } else if (studentAvg >= 75) {
+                        count75to100++;
+                        if (genderClean.startsWith('m')) a75M++; else if (genderClean.startsWith('f')) a75F++;
+                    }
+                }
+
+                return {
+                    name: student.name,
+                    gender: student.gender,
+                    username: student.username,
+                    scores: performanceMap,
+                    total: continuousSum,
+                    average: studentAvg,
+                    evaluatedCount: validUnitsScored
+                };
+            });
+
+            // Update range distribution layout elements dynamically
+            document.getElementById('reportBelow50').innerText = countBelow50;
+            document.getElementById('report50to74').innerText = count50to74;
+            document.getElementById('report75to100').innerText = count75to100;
+            
+            // Set dynamic gender breakdown subheadings
+            document.getElementById('below50Gender').innerText = `M: ${b50M} | F: ${b50F}`;
+            document.getElementById('range5074Gender').innerText = `M: ${r74M} | F: ${r74F}`;
+            document.getElementById('above75Gender').innerText = `M: ${a75M} | F: ${a75F}`;
+
+            // Sort by descending average performance to assign ranks
+            processedStudents.sort((a, b) => b.average - a.average);
+
+            // 8. Output lines to screen view markup context
+            const bodyEl = document.getElementById('matrixTableBody');
+            bodyEl.innerHTML = '';
+
+            if (processedStudents.length === 0) {
+                bodyEl.innerHTML = `<tr><td colspan="${activeSubjects.length + 5}" class="p-6 text-center text-slate-400 italic text-sm bg-white">No student records found matching this layout area.</td></tr>`;
+                updateMetrics(0, 0, "N/A");
+                return;
+            }
+
+            let cumulativeClassTotal = 0;
+            let validAveragesCount = 0;
+
+            processedStudents.forEach((student, index) => {
+                if (student.evaluatedCount > 0) {
+                    cumulativeClassTotal += student.average;
+                    validAveragesCount++;
+                }
+
+                const rankValue = student.evaluatedCount > 0 ? (index + 1) : '--';
+                const row = document.createElement('tr');
+                row.className = "hover:bg-slate-50 transition border-b border-slate-100";
+
+                let rowHTML = `
+                    <td class="p-3 text-left font-bold text-slate-900">
+                        ${student.name}
+                        <span class="block text-[10px] font-mono text-slate-400 font-normal">${student.username}</span>
+                    </td>
+                    <td class="p-3 text-slate-500 font-sans">${student.gender || '-'}</td>
+                `;
+
+                activeSubjects.forEach(sub => {
+                    const score = student.scores[sub];
+                    if (score !== null) {
+                        rowHTML += `<td class="p-2 font-mono font-bold text-slate-800">${score}</td>`;
+                    } else {
+                        rowHTML += `<td class="p-2 text-slate-300 italic font-normal">--</td>`;
+                    }
+                });
+
+                rowHTML += `
+                    <td class="p-3 text-center font-bold font-mono text-slate-700 bg-slate-50/50">${student.evaluatedCount > 0 ? student.total.toFixed(0) : '--'}</td>
+                    <td class="p-3 text-center font-bold font-mono text-indigo-700 bg-indigo-50/20">${student.average > 0 ? student.average.toFixed(1) + '%' : '--'}</td>
+                    <td class="p-3 text-center font-black font-mono text-purple-700 bg-purple-50/20 text-xs">#${rankValue}</td>
+                `;
+
+                row.innerHTML = rowHTML;
+                bodyEl.appendChild(row);
+            });
+
+            const generalClassAverage = validAveragesCount > 0 ? (cumulativeClassTotal / validAveragesCount) : 0;
+            const topPerformingName = processedStudents[0] && processedStudents[0].average > 0 ? `${processedStudents[0].name} (${processedStudents[0].average.toFixed(1)}%)` : "N/A";
+            
+            updateMetrics(classroomStudents.length, generalClassAverage, topPerformingName);
+        }
+
+        function updateMetrics(totalStudents, classAvg, topStudent) {
+            document.getElementById('metricTotalStudents').innerText = totalStudents;
+            document.getElementById('metricClassAverage').innerText = classAvg > 0 ? `${classAvg.toFixed(1)}%` : "0.0%";
+            document.getElementById('metricTopStudent').innerText = topStudent;
+        }
+
+        // Run execution loop
+        compileDynamicBroadsheet();
+		
+		function executeGlobalSearch() {
+    const query = document.getElementById('globalSystemSearch').value.trim().toLowerCase();
+    const resultsContainer = document.getElementById('globalSearchResults');
+    
+    if (!query) {
+        resultsContainer.classList.add('hidden');
+        resultsContainer.innerHTML = '';
+        return;
+    }
+
+    const allUsers = DB.getUsers() || [];
+    
+    const matches = allUsers.filter(user => {
+        const name = String(user.name || '').toLowerCase();
+        const username = String(user.username || '').toLowerCase();
+        const role = String(user.role || '').toLowerCase();
+        const grade = String(user.grade || '').toLowerCase();
+        const section = String(user.section || '').toLowerCase();
+        
+        return name.includes(query) || 
+               username.includes(query) || 
+               role.includes(query) || 
+               (grade && query.includes(grade)) ||
+               section === query;
+    });
+
+    if (matches.length === 0) {
+        resultsContainer.innerHTML = `<div class="p-4 text-center text-xs text-slate-400 italic">No matching records located.</div>`;
+        resultsContainer.classList.remove('hidden');
+        return;
+    }
+
+    resultsContainer.innerHTML = '';
+    matches.slice(0, 10).forEach(user => {
+        const div = document.createElement('div');
+        div.className = "p-3 hover:bg-slate-50 transition cursor-pointer flex justify-between items-center";
+        
+        let metadataBadge = '';
+        if (user.role === 'student') {
+            const streamText = user.stream && user.stream !== 'None' ? ` (${user.stream})` : '';
+            metadataBadge = `<span class="bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded text-[10px]">Gr-${user.grade}${streamText} [${user.section}]</span>`;
+        } else if (user.role === 'teacher') {
+            metadataBadge = `<span class="bg-amber-50 text-amber-700 font-bold px-2 py-0.5 rounded text-[10px] uppercase">${user.teacherType || 'Teacher'}</span>`;
+        } else {
+            metadataBadge = `<span class="bg-rose-50 text-rose-700 font-bold px-2 py-0.5 rounded text-[10px] uppercase">Admin</span>`;
+        }
+
+        div.innerHTML = `
+            <div>
+                <p class="text-xs font-bold text-slate-900">${user.name}</p>
+                <p class="text-[10px] font-mono text-slate-400 font-normal">UID: ${user.username}</p>
+            </div>
+            <div class="flex items-center space-x-2">
+                ${metadataBadge}
+                <span class="text-slate-300 text-xs">➔</span>
+            </div>
+        `;
+
+        // UNIVERSAL SMART CLICK LOGIC
+        div.onclick = () => {
+            resultsContainer.classList.add('hidden');
+            document.getElementById('globalSystemSearch').value = user.name;
+            
+            // 1. If we are on the Performance/Analytics page
+            if (typeof analyzeSystemData === 'function') {
+                analyzeSystemData(user.username);
+            } 
+            // 2. If we are on the Homeroom Advisor or Admin Records student tables
+            else if (typeof renderStudents === 'function') {
+                // Modifying standard render functions to accept a filtered username search highlight
+                renderStudents(user.username);
+            } 
+            // 3. Fallback: If no custom page filters exist, just hold the user selection safely
+            else {
+                console.log(`Selected profile: ${user.name} (${user.username})`);
+            }
+        };
+
+        resultsContainer.appendChild(div);
+    });
+
+    resultsContainer.classList.remove('hidden');
+}
+
+// Close dropdown on outside click
+document.addEventListener('click', function(event) {
+    const container = document.getElementById('globalSearchResults');
+    const searchInput = document.getElementById('globalSystemSearch');
+    if (container && !container.contains(event.target) && event.target !== searchInput) {
+        container.classList.add('hidden');
+    }
+});
+    </script>
+</body>
+</html>
