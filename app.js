@@ -13,9 +13,11 @@ if (!localStorage.getItem('reports')) localStorage.setItem('reports', JSON.strin
 
 // 2. Global Database Context Driver Methods
 // Initialize Supabase Client Connection Layer
-const SUPABASE_URL = "sb_publishable_jMAFHsAg5nQezVCoW7sZuA_Tp6l2TNv"; // Replace with your actual Supabase URL
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVuaHZ4Y3JoeW9pamJrenJhZ3NhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzMTQ2OTAsImV4cCI6MjA5Nzg5MDY5MH0.qBjzd4WWUTKQYiOZLMSC6Qfij-_5yWLNm2G32VC9mWA"; // Replace with your real Anon API Key
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Initialize Supabase Client Connection
+const SUPABASE_URL = "https://enhvxcrhyoijbkzragsa.supabase.co/rest/v1/"; // 👈 This is your real project URL!
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVuaHZ4Y3JoeW9pamJrenJhZ3NhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzMTQ2OTAsImV4cCI6MjA5Nzg5MDY5MH0.qBjzd4WWUTKQYiOZLMSC6Qfij-_5yWLNm2G32VC9mWA"; 
+
+const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 window.DB = {
     // 1. Fetch all users from the cloud
