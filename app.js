@@ -11,9 +11,8 @@ if (!localStorage.getItem('users')) {
 if (!localStorage.getItem('results')) localStorage.setItem('results', JSON.stringify([]));
 if (!localStorage.getItem('reports')) localStorage.setItem('reports', JSON.stringify([]));
 
-// 2. Global Database Context Driver Methods
 // Corrected Project ID URL routing configuration
-const SUPABASE_URL = "https://enhvxcrhyuojbkzragsa.supabase.co"; 
+const SUPABASE_URL = "https://enhvxcrhyoijbkzragsa.supabase.co"; // 👈 Matches your screenshot perfectly now!
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVuaHZ4Y3JoeW9pamJrenJhZ3NhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzMTQ2OTAsImV4cCI6MjA5Nzg5MDY5MH0.qBjzd4WWUTKQYiOZLMSC6Qfij-_5yWLNm2G32VC9mWA"; 
 
 // Initialized with safe window referencing wrapper scope
