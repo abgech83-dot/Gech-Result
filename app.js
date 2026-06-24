@@ -2,7 +2,7 @@
  * Universal School Management System Core Data Bridge & Shared Orchestrator
  */
 
-// 1. Database Key Initializers & Fallback Instantiations (Using your original working keys)
+// 1. Database Key Initializers & Fallback Instantiations
 if (!localStorage.getItem('users')) {
     localStorage.setItem('users', JSON.stringify([
         { username: "admin", password: "123", role: "admin", name: "Principal System Admin", gender: "Male", age: 38 }
@@ -12,31 +12,32 @@ if (!localStorage.getItem('results')) localStorage.setItem('results', JSON.strin
 if (!localStorage.getItem('reports')) localStorage.setItem('reports', JSON.stringify([]));
 
 // 2. Global Database Context Driver Methods
-// Initialize Supabase Client Connection Layer
-// Initialize Supabase Client Connection
-const SUPABASE_URL = "https://enhvxcrhyoijbkzragsa.supabase.co/rest/v1/"; // 👈 This is your real project URL!
+// Corrected Project ID URL routing configuration
+const SUPABASE_URL = "https://enhvxcrhyuojbkzragsa.supabase.co"; 
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVuaHZ4Y3JoeW9pamJrenJhZ3NhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzMTQ2OTAsImV4cCI6MjA5Nzg5MDY5MH0.qBjzd4WWUTKQYiOZLMSC6Qfij-_5yWLNm2G32VC9mWA"; 
 
-const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Initialized with safe window referencing wrapper scope
+const _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 window.DB = {
     // 1. Fetch all users from the cloud
     getUsers: async () => {
-        const { data, error } = await supabase.from('users').select('*');
+        // FIXED: Using correct client instance variable '_supabase'
+        const { data, error } = await _supabase.from('users').select('*');
         if (error) { console.error("Error fetching users:", error); return []; }
         return data || [];
     },
 
     // 2. Add or update a user profile (Admin Panel / Registration)
     saveUser: async (newUser) => {
-        const { data, error } = await supabase.from('users').upsert(newUser, { onConflict: 'username' });
+        const { data, error } = await _supabase.from('users').upsert(newUser, { onConflict: 'username' });
         if (error) console.error("Error writing user record:", error);
         return data;
     },
     
     // 3. Fetch all score results
     getResults: async () => {
-        const { data, error } = await supabase.from('results').select('*');
+        const { data, error } = await _supabase.from('results').select('*');
         if (error) { console.error("Error reading scores table:", error); return []; }
         
         // Match stringified JSON if column type is text/varchar in your DB
@@ -46,7 +47,7 @@ window.DB = {
         }));
     },
 
-    // 4. Secure single student score updates (Supports both Simple and Detailed Mode objects)
+    // 4. Secure single student score updates
     saveResult: async (studentUsername, subject, score, breakdown = null) => {
         const payload = {
             username: studentUsername,
@@ -56,7 +57,7 @@ window.DB = {
             status: 'draft'
         };
 
-        const { data, error } = await supabase.from('results')
+        const { data, error } = await _supabase.from('results')
             .upsert(payload, { onConflict: 'username,subject' });
 
         if (error) console.error("Cloud engine database write failure:", error);
@@ -70,18 +71,18 @@ window.DB = {
             teacher: reportObject.teacher,
             segment: reportObject.segment,
             date: reportObject.date,
-            data: JSON.stringify(reportObject.data), // Stringify complex array for clear table cell tracking
+            data: JSON.stringify(reportObject.data), 
             approved: reportObject.approved
         };
 
-        const { data, error } = await supabase.from('reports').insert([payload]);
+        const { data, error } = await _supabase.from('reports').insert([payload]);
         if (error) console.error("Failed to sync dispatched administrative report:", error);
         return data;
     },
 
     // 6. Fetch batch administrative reports
     getReports: async () => {
-        const { data, error } = await supabase.from('reports').select('*');
+        const { data, error } = await _supabase.from('reports').select('*');
         if (error) { console.error("Error fetching reports ledger:", error); return []; }
         return (data || []).map(rep => ({
             ...rep,
@@ -97,6 +98,7 @@ window.DB = {
         return { username: `${role}${rand}`, password: `pass${rand}` };
     }
 };
+
 // 3. Global Course Framework Matrix By Grade and Stream Configuration
 window.CourseMap = {
     "9": ['English', 'Mathematics', 'Biology', 'Physics', 'Chemistry', 'Geography', 'History', 'Citizenship', 'Economics', 'Amharic', 'Afaan_Oromo', 'HPE', 'ICT'],
@@ -116,6 +118,5 @@ window.AllDistinctSubjects = [
 // 5. String Normalization & Formatting Helper Utility
 window.formatSubjectName = function(sub) {
     if (!sub) return 'General Core';
-    // Replaces underscores with blank spacing and applies proper capitalization
     return sub.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
 };
