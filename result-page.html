@@ -62,7 +62,7 @@ async function initializeStudentReportCard() {
         // 1. Verify a valid student session context state is active
         const auth = JSON.parse(sessionStorage.getItem('currentUser'));
         if(!auth || auth.role !== 'student') {
-            window.location.href = 'login.html';
+            window.location.href = 'index.html';
             return;
         }
 
